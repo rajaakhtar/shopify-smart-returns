@@ -1,0 +1,819 @@
+{% layout 'theme' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start a Return — Momina</title>
+  <style>
+    /* ===== BASE ===== */
+    .sr-wrap {
+      font-family: inherit;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 16px 60px;
+      color: #333;
+    }
+
+    /* ===== STAGE VISIBILITY ===== */
+    .sr-stage { display: none; }
+    .sr-stage.active { display: block; }
+
+    /* ===== CARD ===== */
+    .sr-card {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    /* ===== HEADINGS ===== */
+    .sr-page-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+    .sr-subtitle {
+      font-size: 15px;
+      color: #666;
+      margin: 0 0 28px;
+    }
+    .sr-section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    /* ===== ORDER SUMMARY BAR ===== */
+    .sr-order-bar {
+      background: #f7f7f7;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+    .sr-order-bar strong { color: #222; }
+
+    /* ===== FORM ELEMENTS ===== */
+    .sr-field {
+      margin-bottom: 18px;
+    }
+    .sr-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .sr-input,
+    .sr-select,
+    .sr-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 0 12px;
+      height: 44px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #333;
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+    .sr-input:focus,
+    .sr-select:focus,
+    .sr-textarea:focus {
+      outline: none;
+      border-color: #333;
+    }
+    .sr-textarea {
+      height: auto;
+      padding: 10px 12px;
+      resize: vertical;
+      min-height: 72px;
+    }
+    .sr-select { cursor: pointer; }
+
+    /* ===== BUTTONS ===== */
+    .sr-btn {
+      display: block;
+      width: 100%;
+      height: 48px;
+      background: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .sr-btn:hover:not(:disabled) { background: #000; }
+    .sr-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* ===== SPINNER ===== */
+    .sr-spinner {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: sr-spin 0.7s linear infinite;
+      margin: 24px auto;
+    }
+    @keyframes sr-spin { to { transform: rotate(360deg); } }
+    .sr-loading .sr-spinner { display: block; }
+    .sr-loading .sr-form-content { display: none; }
+
+    /* ===== ERRORS ===== */
+    .sr-error {
+      color: #dc3545;
+      font-size: 14px;
+      margin-top: 6px;
+      display: none;
+    }
+    .sr-error.visible { display: block; }
+    .sr-inline-error {
+      color: #dc3545;
+      font-size: 14px;
+      background: #fff5f5;
+      border: 1px solid #f5c6cb;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .sr-inline-error.visible { display: block; }
+
+    /* ===== PRODUCT CARDS ===== */
+    .sr-item-card {
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 14px;
+      transition: border-color 0.15s;
+    }
+    .sr-item-card.selected { border-color: #333; }
+
+    .sr-item-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .sr-item-img {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: 6px;
+      flex-shrink: 0;
+      background: #f5f5f5;
+    }
+    .sr-item-img-placeholder {
+      width: 64px;
+      height: 64px;
+      border-radius: 6px;
+      background: #f0f0f0;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #bbb;
+      font-size: 22px;
+    }
+    .sr-item-info { flex: 1; min-width: 0; }
+    .sr-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 3px;
+    }
+    .sr-item-variant {
+      font-size: 13px;
+      color: #777;
+      margin: 0 0 4px;
+    }
+    .sr-item-meta {
+      font-size: 13px;
+      color: #555;
+    }
+    .sr-item-check-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 12px;
+      user-select: none;
+    }
+    .sr-item-check-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* ===== EXPANDABLE RETURN DETAILS ===== */
+    .sr-return-details {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+    }
+    .sr-return-details.open {
+      max-height: 600px;
+      opacity: 1;
+    }
+    .sr-return-details-inner {
+      padding-top: 14px;
+      border-top: 1px solid #f0f0f0;
+      margin-top: 14px;
+    }
+    .sr-return-details-inner .sr-field:last-child { margin-bottom: 0; }
+
+    /* ===== RADIO GROUP ===== */
+    .sr-radio-group { display: flex; flex-direction: column; gap: 10px; }
+    .sr-radio-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      cursor: pointer;
+      padding: 12px 14px;
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .sr-radio-label:hover { border-color: #bbb; }
+    .sr-radio-label input[type="radio"]:checked + span { font-weight: 500; }
+    .sr-radio-label:has(input:checked) {
+      border-color: #333;
+      background: #fafafa;
+    }
+    .sr-radio-label input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ===== CONFIRMATIONS (checkboxes) ===== */
+    .sr-confirm-list { display: flex; flex-direction: column; gap: 12px; }
+    .sr-confirm-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .sr-confirm-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ===== SUCCESS STAGE ===== */
+    .sr-success {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .sr-success-icon {
+      margin: 0 auto 20px;
+      display: block;
+    }
+    .sr-success-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 10px;
+    }
+    .sr-success-text {
+      font-size: 15px;
+      color: #555;
+      margin: 0 0 24px;
+    }
+    .sr-success-link {
+      display: inline-block;
+      color: #333;
+      text-decoration: underline;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 480px) {
+      .sr-card { padding: 18px; }
+      .sr-item-header { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="sr-wrap">
+
+  <!-- ===== STAGE 1: ORDER LOOKUP ===== -->
+  <div id="sr-stage-1" class="sr-stage active">
+    <div class="sr-card">
+      <div id="sr-stage1-content" class="sr-form-content">
+        <h1 class="sr-page-title">Start a Return</h1>
+        <p class="sr-subtitle">Enter your order details below to begin the returns process.</p>
+
+        <div id="sr-lookup-error" class="sr-inline-error"></div>
+
+        <div class="sr-field">
+          <label class="sr-label" for="sr-order-number">Order Number</label>
+          <input class="sr-input" type="text" id="sr-order-number" placeholder="e.g. 1042" autocomplete="off">
+        </div>
+
+        <div class="sr-field">
+          <label class="sr-label" for="sr-email">Email Address</label>
+          <input class="sr-input" type="email" id="sr-email" placeholder="The email address used for your order" autocomplete="email">
+        </div>
+
+        <button class="sr-btn" id="sr-lookup-btn">Find My Order</button>
+      </div>
+      <div class="sr-spinner" id="sr-stage1-spinner"></div>
+    </div>
+  </div>
+
+  <!-- ===== STAGE 2: RETURN FORM ===== -->
+  <div id="sr-stage-2" class="sr-stage">
+
+    <!-- Order summary bar -->
+    <div class="sr-order-bar" id="sr-order-bar">
+      Loading order...
+    </div>
+
+    <div id="sr-submit-error" class="sr-inline-error"></div>
+
+    <!-- Section 1: Item Selection -->
+    <div class="sr-card">
+      <h2 class="sr-section-title">Select Items to Return</h2>
+      <div id="sr-items-container">
+        <!-- Item cards injected by JS -->
+      </div>
+    </div>
+
+    <!-- Section 2: Refund Preference -->
+    <div class="sr-card">
+      <h2 class="sr-section-title">How would you like to be refunded?</h2>
+      <div class="sr-radio-group" id="sr-refund-group">
+        <label class="sr-radio-label">
+          <input type="radio" name="refund" value="Get a credit note (Fast — Processed in 2 days)">
+          <span>Get a credit note <em>(Fast — Processed in 2 days)</em></span>
+        </label>
+        <label class="sr-radio-label">
+          <input type="radio" name="refund" value="Get a refund to source of payment (Slow — Processed in 2–3 weeks)">
+          <span>Get a refund to source of payment <em>(Slow — Processed in 2–3 weeks)</em></span>
+        </label>
+        <label class="sr-radio-label">
+          <input type="radio" name="refund" value="Get an exchange for a different suit or size">
+          <span>Get an exchange for a different suit or size</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Section 3: Confirmations -->
+    <div class="sr-card">
+      <h2 class="sr-section-title">Please confirm the following</h2>
+
+      <!-- Tags radio -->
+      <div class="sr-field">
+        <p class="sr-label" style="margin-bottom:10px;">I confirm all tags and ribbons are still attached to the suit</p>
+        <div class="sr-radio-group" id="sr-tags-group" style="flex-direction:row;gap:14px;">
+          <label class="sr-radio-label" style="flex:1;">
+            <input type="radio" name="tags" value="Yes">
+            <span>Yes</span>
+          </label>
+          <label class="sr-radio-label" style="flex:1;">
+            <input type="radio" name="tags" value="No">
+            <span>No</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Policy checkboxes -->
+      <div class="sr-confirm-list">
+        <label class="sr-confirm-item">
+          <input type="checkbox" id="sr-check-policy">
+          <span>I confirm I have read the full <a href="/pages/returns-policy" target="_blank" style="color:#333;">Returns Policy</a> and would like to proceed with returning item(s) from my order.</span>
+        </label>
+        <label class="sr-confirm-item">
+          <input type="checkbox" id="sr-check-14days">
+          <span>I accept that this order was delivered to me within the last 14 days. <em>Note: After this time period, your parcel sent to us can be rejected and returned back to you.</em></span>
+        </label>
+        <label class="sr-confirm-item">
+          <input type="checkbox" id="sr-check-postage">
+          <span>I understand that I am fully responsible for sending the parcel in a safe manner, which includes tracking and paying the correct postage for the label according to its weight.</span>
+        </label>
+        <label class="sr-confirm-item">
+          <input type="checkbox" id="sr-check-deduction">
+          <span>I understand that if the items are not returned in the same condition as they were delivered (original packaging removed, clothes inside-out, or rolled-up into a ball unfolded), then 15% will be deducted from the return total amount.</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <button class="sr-btn" id="sr-submit-btn" disabled>Submit Return Request</button>
+    <div class="sr-spinner" id="sr-stage2-spinner" style="display:none;margin-top:16px;"></div>
+  </div>
+
+  <!-- ===== STAGE 3: SUCCESS ===== -->
+  <div id="sr-stage-3" class="sr-stage">
+    <div class="sr-card">
+      <div class="sr-success">
+        <svg class="sr-success-icon" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="32" fill="#e8f5e9"/>
+          <path d="M20 33L28 41L44 24" stroke="#2e7d32" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2 class="sr-success-title">Return request submitted successfully.</h2>
+        <p class="sr-success-text" id="sr-success-text">
+          We'll review your request and get back to you within 2 business days.
+        </p>
+        <span class="sr-success-link" id="sr-new-return">Start a New Return</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===== STATE =====
+  let orderData = null; // The fetched order object
+
+  // ===== ELEMENT REFS =====
+  const stage1 = document.getElementById('sr-stage-1');
+  const stage2 = document.getElementById('sr-stage-2');
+  const stage3 = document.getElementById('sr-stage-3');
+
+  const orderInput    = document.getElementById('sr-order-number');
+  const emailInput    = document.getElementById('sr-email');
+  const lookupBtn     = document.getElementById('sr-lookup-btn');
+  const lookupError   = document.getElementById('sr-lookup-error');
+  const stage1Content = document.getElementById('sr-stage1-content');
+  const stage1Spinner = document.getElementById('sr-stage1-spinner');
+
+  const orderBar      = document.getElementById('sr-order-bar');
+  const itemsContainer= document.getElementById('sr-items-container');
+  const submitBtn     = document.getElementById('sr-submit-btn');
+  const submitError   = document.getElementById('sr-submit-error');
+  const stage2Spinner = document.getElementById('sr-stage2-spinner');
+  const successText   = document.getElementById('sr-success-text');
+  const newReturnBtn  = document.getElementById('sr-new-return');
+
+  // ===== HELPERS =====
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+  function hideError(el) {
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+  function showStage(stageEl) {
+    [stage1, stage2, stage3].forEach(s => s.classList.remove('active'));
+    stageEl.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ===== STAGE 1: ORDER LOOKUP =====
+  lookupBtn.addEventListener('click', handleLookup);
+  orderInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleLookup(); });
+  emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleLookup(); });
+
+  async function handleLookup() {
+    const orderNumber = orderInput.value.trim();
+    const email = emailInput.value.trim();
+
+    hideError(lookupError);
+
+    if (!orderNumber) {
+      showError(lookupError, 'Please enter your order number.');
+      orderInput.focus();
+      return;
+    }
+    if (!email) {
+      showError(lookupError, 'Please enter your email address.');
+      emailInput.focus();
+      return;
+    }
+
+    // Loading state
+    stage1Content.style.display = 'none';
+    stage1Spinner.style.display = 'block';
+    lookupBtn.disabled = true;
+
+    try {
+      const resp = await fetch('/apps/returns/api/lookup-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, email }),
+      });
+      const data = await resp.json();
+
+      if (!data.success) {
+        stage1Content.style.display = 'block';
+        stage1Spinner.style.display = 'none';
+        lookupBtn.disabled = false;
+        showError(lookupError, data.message || 'Something went wrong. Please try again.');
+        return;
+      }
+
+      orderData = data.order;
+      buildStage2();
+      showStage(stage2);
+
+    } catch (err) {
+      stage1Content.style.display = 'block';
+      stage1Spinner.style.display = 'none';
+      lookupBtn.disabled = false;
+      showError(lookupError, 'Network error. Please check your connection and try again.');
+    }
+  }
+
+  // ===== STAGE 2: BUILD FORM =====
+  function buildStage2() {
+    // Order bar
+    orderBar.innerHTML = `<strong>Order ${orderData.orderNumber}</strong> &mdash; placed ${orderData.orderDate} &mdash; ${orderData.customerName}`;
+
+    // Build item cards
+    itemsContainer.innerHTML = '';
+    orderData.lineItems.forEach((item, idx) => {
+      const card = document.createElement('div');
+      card.className = 'sr-item-card';
+      card.dataset.idx = idx;
+
+      const imgHtml = item.imageUrl
+        ? `<img class="sr-item-img" src="${escHtml(item.imageUrl)}" alt="${escHtml(item.title)}" loading="lazy">`
+        : `<div class="sr-item-img-placeholder">&#128247;</div>`;
+
+      const variantHtml = item.variantTitle
+        ? `<p class="sr-item-variant">${escHtml(item.variantTitle)}</p>`
+        : '';
+
+      card.innerHTML = `
+        <div class="sr-item-header">
+          ${imgHtml}
+          <div class="sr-item-info">
+            <p class="sr-item-title">${escHtml(item.title)}</p>
+            ${variantHtml}
+            <p class="sr-item-meta">£${escHtml(String(item.price))} &nbsp;·&nbsp; Qty purchased: ${item.quantity}</p>
+          </div>
+        </div>
+        <label class="sr-item-check-label">
+          <input type="checkbox" class="sr-item-checkbox" data-idx="${idx}">
+          Return this item
+        </label>
+        <div class="sr-return-details" id="sr-details-${idx}">
+          <div class="sr-return-details-inner">
+            <div class="sr-field">
+              <label class="sr-label" for="sr-qty-${idx}">Quantity to return</label>
+              <input class="sr-input" type="number" id="sr-qty-${idx}" min="1" max="${item.quantity}" value="1" style="width:100px;">
+            </div>
+            <div class="sr-field">
+              <label class="sr-label" for="sr-reason-${idx}">Reason for return <span style="color:#dc3545">*</span></label>
+              <select class="sr-select" id="sr-reason-${idx}" data-idx="${idx}">
+                <option value="">Select a reason...</option>
+                <option value="Wrong size">Wrong size</option>
+                <option value="Damaged or defective">Damaged or defective</option>
+                <option value="Not as described">Not as described</option>
+                <option value="Changed my mind">Changed my mind</option>
+                <option value="Received wrong item">Received wrong item</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="sr-field" id="sr-other-field-${idx}" style="display:none;">
+              <label class="sr-label" for="sr-other-${idx}">Please specify <span style="color:#dc3545">*</span></label>
+              <input class="sr-input" type="text" id="sr-other-${idx}" placeholder="Describe your reason...">
+            </div>
+            <div class="sr-field">
+              <label class="sr-label" for="sr-comments-${idx}">Additional comments <span style="color:#888;font-weight:400;">(optional)</span></label>
+              <textarea class="sr-textarea" id="sr-comments-${idx}" rows="2" placeholder="Any extra information..."></textarea>
+            </div>
+          </div>
+        </div>
+      `;
+
+      itemsContainer.appendChild(card);
+
+      // Toggle expand on checkbox
+      const checkbox = card.querySelector('.sr-item-checkbox');
+      const details  = card.querySelector('.sr-return-details');
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          details.classList.add('open');
+          card.classList.add('selected');
+        } else {
+          details.classList.remove('open');
+          card.classList.remove('selected');
+        }
+        validateForm();
+      });
+
+      // Toggle Other field
+      const reasonSel = card.querySelector(`#sr-reason-${idx}`);
+      reasonSel.addEventListener('change', () => {
+        const otherField = document.getElementById(`sr-other-field-${idx}`);
+        otherField.style.display = reasonSel.value === 'Other' ? 'block' : 'none';
+        validateForm();
+      });
+
+      // Validate on any input change
+      card.addEventListener('change', validateForm);
+      card.addEventListener('input', validateForm);
+    });
+
+    // Refund + confirmations change listeners
+    document.querySelectorAll('input[name="refund"]').forEach(r => r.addEventListener('change', validateForm));
+    document.querySelectorAll('input[name="tags"]').forEach(r => r.addEventListener('change', validateForm));
+    ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction'].forEach(id => {
+      document.getElementById(id).addEventListener('change', validateForm);
+    });
+
+    validateForm();
+  }
+
+  // ===== VALIDATION =====
+  function validateForm() {
+    let valid = true;
+
+    // At least one item selected with a reason chosen
+    const checkboxes = document.querySelectorAll('.sr-item-checkbox');
+    let anySelected = false;
+    checkboxes.forEach((cb, idx) => {
+      if (cb.checked) {
+        anySelected = true;
+        const reason = document.getElementById(`sr-reason-${idx}`);
+        if (!reason || !reason.value) valid = false;
+        // If "Other" selected, also need the text field
+        if (reason && reason.value === 'Other') {
+          const otherInput = document.getElementById(`sr-other-${idx}`);
+          if (!otherInput || !otherInput.value.trim()) valid = false;
+        }
+      }
+    });
+    if (!anySelected) valid = false;
+
+    // Refund preference
+    const refundSelected = document.querySelector('input[name="refund"]:checked');
+    if (!refundSelected) valid = false;
+
+    // Tags radio
+    const tagsSelected = document.querySelector('input[name="tags"]:checked');
+    if (!tagsSelected) valid = false;
+
+    // Checkboxes
+    if (!document.getElementById('sr-check-policy').checked)   valid = false;
+    if (!document.getElementById('sr-check-14days').checked)   valid = false;
+    if (!document.getElementById('sr-check-postage').checked)  valid = false;
+    if (!document.getElementById('sr-check-deduction').checked)valid = false;
+
+    submitBtn.disabled = !valid;
+    return valid;
+  }
+
+  // ===== STAGE 2: SUBMIT =====
+  submitBtn.addEventListener('click', handleSubmit);
+
+  async function handleSubmit() {
+    hideError(submitError);
+
+    if (!validateForm()) {
+      showError(submitError, 'Please complete all required fields before submitting.');
+      submitError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Gather items
+    const items = [];
+    document.querySelectorAll('.sr-item-checkbox').forEach((cb, idx) => {
+      if (!cb.checked) return;
+      const item = orderData.lineItems[idx];
+      const reason = document.getElementById(`sr-reason-${idx}`).value;
+      const otherReason = reason === 'Other'
+        ? (document.getElementById(`sr-other-${idx}`).value.trim() || '')
+        : '';
+      const qty = parseInt(document.getElementById(`sr-qty-${idx}`).value, 10) || 1;
+      const comments = document.getElementById(`sr-comments-${idx}`).value.trim();
+
+      const displayTitle = item.variantTitle
+        ? `${item.title} — ${item.variantTitle}`
+        : item.title;
+
+      items.push({
+        title: displayTitle,
+        variantTitle: item.variantTitle || '',
+        price: item.price,
+        quantityPurchased: item.quantity,
+        quantityToReturn: qty,
+        reason,
+        otherReason,
+        comments,
+      });
+    });
+
+    const refundPreference = document.querySelector('input[name="refund"]:checked').value;
+    const tagsAttached     = document.querySelector('input[name="tags"]:checked').value;
+
+    const payload = {
+      orderNumber:  orderData.orderNumber,
+      customerName: orderData.customerName,
+      customerEmail:orderData.customerEmail,
+      orderDate:    orderData.orderDate,
+      refundPreference,
+      tagsAttached,
+      policyConfirmations: {
+        readReturnsPolicy:       document.getElementById('sr-check-policy').checked,
+        within14Days:            document.getElementById('sr-check-14days').checked,
+        responsibleForPostage:   document.getElementById('sr-check-postage').checked,
+        understandsDeduction:    document.getElementById('sr-check-deduction').checked,
+      },
+      items,
+    };
+
+    // Loading state
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    stage2Spinner.style.display = 'block';
+
+    try {
+      const resp = await fetch('/apps/returns/api/submit-return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+
+      stage2Spinner.style.display = 'none';
+
+      if (!data.success) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Return Request';
+        showError(submitError, data.message || 'Something went wrong. Please try again.');
+        submitError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // Success
+      successText.innerHTML = `We'll review your request and get back to you within 2 business days at <strong>${escHtml(orderData.customerEmail)}</strong>.`;
+      showStage(stage3);
+
+    } catch (err) {
+      stage2Spinner.style.display = 'none';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Return Request';
+      showError(submitError, 'Network error. Please check your connection and try again.');
+    }
+  }
+
+  // ===== STAGE 3: NEW RETURN =====
+  newReturnBtn.addEventListener('click', () => {
+    // Reset everything
+    orderInput.value = '';
+    emailInput.value = '';
+    hideError(lookupError);
+    stage1Content.style.display = 'block';
+    stage1Spinner.style.display = 'none';
+    lookupBtn.disabled = false;
+    orderData = null;
+    itemsContainer.innerHTML = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submit Return Request';
+    hideError(submitError);
+    // Uncheck radios
+    document.querySelectorAll('input[name="refund"], input[name="tags"]').forEach(r => r.checked = false);
+    ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction'].forEach(id => {
+      document.getElementById(id).checked = false;
+    });
+    showStage(stage1);
+  });
+
+  // ===== XSS HELPER =====
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+})();
+</script>
+</body>
+</html>
