@@ -402,6 +402,9 @@
             <span>No</span>
           </label>
         </div>
+        <div id="sr-tags-warning" style="display:none;margin-top:10px;padding:12px 14px;background:#fff8e1;border:1px solid #f9a825;border-radius:6px;color:#7a5200;font-size:13px;line-height:1.6;">
+          ⚠️ Please note: if the original tags or purple ribbon (if included) have been cut or removed, your return will not be accepted. Upon receipt, the suits and their tags/ribbons will be thoroughly inspected to confirm the items are in their original condition before any refund is processed.
+        </div>
       </div>
 
       <!-- Policy checkboxes -->
@@ -640,7 +643,10 @@
 
     // Refund + confirmations change listeners
     document.querySelectorAll('input[name="refund"]').forEach(r => r.addEventListener('change', validateForm));
-    document.querySelectorAll('input[name="tags"]').forEach(r => r.addEventListener('change', validateForm));
+    document.querySelectorAll('input[name="tags"]').forEach(r => r.addEventListener('change', () => {
+      document.getElementById('sr-tags-warning').style.display = r.value === 'No' && r.checked ? 'block' : 'none';
+      validateForm();
+    }));
     ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction'].forEach(id => {
       document.getElementById(id).addEventListener('change', validateForm);
     });
@@ -673,9 +679,9 @@
     const refundSelected = document.querySelector('input[name="refund"]:checked');
     if (!refundSelected) valid = false;
 
-    // Tags radio
+    // Tags radio — must be answered and must be "Yes"
     const tagsSelected = document.querySelector('input[name="tags"]:checked');
-    if (!tagsSelected) valid = false;
+    if (!tagsSelected || tagsSelected.value === 'No') valid = false;
 
     // Checkboxes
     if (!document.getElementById('sr-check-policy').checked)   valid = false;
