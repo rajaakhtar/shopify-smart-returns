@@ -47,24 +47,22 @@ module.exports = async function lookupOrder(req, res) {
       ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim()
       : 'Customer';
 
-    // Fetch product images for any line items missing an image
-    const itemsMissingImages = order.line_items.filter(item => !item.image);
+    // For variants with no variant-specific image, fall back to the product's main image
     const productImages = {};
-    if (itemsMissingImages.length > 0) {
-      const uniqueProductIds = [...new Set(itemsMissingImages.map(i => i.product_id).filter(Boolean))];
-      await Promise.all(
-        uniqueProductIds.map(async (productId) => {
-          try {
-            const productData = await shopifyFetch(`/products/${productId}.json?fields=id,image`);
-            productImages[productId] = productData.product?.image?.src || '';
-          } catch {
-            productImages[productId] = '';
-          }
+    const missingImageIds = [...new Set(
+      order.line_items
+        .filter(item => !item.image?.src && item.product_id)
+        .map(item => item.product_id)
+    )];
+    if (missingImageIds.length > 0) {
+      await Promise.allSettled(
+        missingImageIds.map(async (productId) => {
+          const d = await shopifyFetch(`/products/${productId}.json?fields=id,image`);
+          productImages[productId] = d.product?.image?.src || '';
         })
       );
     }
 
-    // Map line items
     const lineItems = order.line_items.map(item => ({
       id: item.id,
       title: item.title,
