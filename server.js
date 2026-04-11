@@ -11,7 +11,11 @@ app.use(express.urlencoded({ extended: true }));
 const proxyRoute = require('./routes/proxy');
 const lookupOrderRoute = require('./routes/lookupOrder');
 const submitReturnRoute = require('./routes/submitReturn');
+const adminRoute = require('./routes/admin');
 const checkOrigin = require('./middleware/checkOrigin');
+
+// GET / - Admin dashboard (embedded in Shopify admin)
+app.get('/', adminRoute);
 
 // GET /proxy - Serve the returns form HTML (Shopify app proxy)
 // This route goes through HMAC verification

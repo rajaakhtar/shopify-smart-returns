@@ -1,4 +1,19 @@
+const fs = require('fs');
+const path = require('path');
 const { sendReturnEmail } = require('../utils/mailer');
+
+const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+
+function saveSubmission(submission) {
+  const dataDir = path.join(__dirname, '..', 'data');
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+  let submissions = [];
+  if (fs.existsSync(DATA_FILE)) {
+    try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { submissions = []; }
+  }
+  submissions.unshift(submission);
+  fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+}
 
 /**
  * POST /proxy/api/submit-return
@@ -80,7 +95,30 @@ Submitted: ${submittedAt}
 
     const subject = `Return Request — Order ${orderNumber}`;
 
-    await sendReturnEmail(process.env.RETURNS_EMAIL, subject, emailBody);
+    let emailStatus = 'sent';
+    try {
+      await sendReturnEmail(process.env.RETURNS_EMAIL, subject, emailBody);
+    } catch (emailError) {
+      console.error('Email send failed:', emailError);
+      emailStatus = 'failed';
+    }
+
+    saveSubmission({
+      id: Date.now(),
+      submittedAt: new Date().toISOString(),
+      orderNumber,
+      orderDate,
+      customerName,
+      customerEmail,
+      refundPreference,
+      tagsAttached,
+      items,
+      emailStatus,
+    });
+
+    if (emailStatus === 'failed') {
+      return res.json({ success: false, message: 'Your return was recorded but we could not send the confirmation email. Please contact us directly.' });
+    }
 
     return res.json({ success: true, message: 'Return request submitted successfully.' });
   } catch (error) {

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Returns — Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f6f6f7; color: #202223; font-size: 14px; }
+    .header { background: #fff; border-bottom: 1px solid #e1e3e5; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 18px; font-weight: 600; color: #202223; }
+    .header .count { font-size: 13px; color: #6d7175; }
+    .container { padding: 24px; max-width: 1100px; margin: 0 auto; }
+    .empty { text-align: center; padding: 80px 24px; color: #6d7175; }
+    .empty svg { margin-bottom: 16px; opacity: 0.4; }
+    .empty p { font-size: 15px; }
+    .card { background: #fff; border: 1px solid #e1e3e5; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; }
+    .card-header:hover { background: #fafafa; }
+    .card-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .order-num { font-weight: 600; font-size: 15px; }
+    .customer { color: #202223; }
+    .date { color: #6d7175; font-size: 13px; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .badge-sent { background: #d3f0d1; color: #1a6b1a; }
+    .badge-failed { background: #ffd2d2; color: #b91c1c; }
+    .chevron { transition: transform 0.2s; color: #6d7175; flex-shrink: 0; }
+    .chevron.open { transform: rotate(180deg); }
+    .card-body { display: none; padding: 0 18px 18px; border-top: 1px solid #f1f1f1; }
+    .card-body.open { display: block; }
+    .section { margin-top: 16px; }
+    .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6d7175; margin-bottom: 8px; }
+    .refund-pref { font-size: 14px; color: #202223; background: #f6f6f7; padding: 8px 12px; border-radius: 6px; }
+    .items-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .item { display: flex; gap: 10px; background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 6px; padding: 10px 12px; }
+    .item-details { flex: 1; }
+    .item-name { font-weight: 500; font-size: 14px; }
+    .item-sub { font-size: 12px; color: #6d7175; margin-top: 2px; }
+    .confirmations { display: flex; flex-direction: column; gap: 4px; }
+    .confirm-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3d7a3d; }
+    .confirm-row svg { flex-shrink: 0; }
+    .divider { height: 1px; background: #f1f1f1; margin: 14px 0 0; }
+    .card-footer { padding: 8px 18px 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .meta-item { font-size: 12px; color: #6d7175; }
+    .meta-item span { color: #202223; font-weight: 500; }
+    @media (max-width: 600px) {
+      .container { padding: 12px; }
+      .card-meta { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Smart Returns</h1>
+  <span class="count" id="submission-count"></span>
+</div>
+
+<div class="container" id="app"></div>
+
+<script>
+const submissions = __SUBMISSIONS_JSON__;
+
+const app = document.getElementById('app');
+const countEl = document.getElementById('submission-count');
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(str) {
+  if (!str) return '—';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderSubmissions() {
+  countEl.textContent = submissions.length === 1 ? '1 submission' : `${submissions.length} submissions`;
+
+  if (submissions.length === 0) {
+    app.innerHTML = `
+      <div class="empty">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p>No return requests yet</p>
+      </div>`;
+    return;
+  }
+
+  app.innerHTML = submissions.map((s, i) => {
+    const statusClass = s.emailStatus === 'sent' ? 'badge-sent' : 'badge-failed';
+    const statusLabel = s.emailStatus === 'sent' ? '✓ Email sent' : '✗ Email failed';
+    const itemCount = s.items ? s.items.length : 0;
+
+    const itemsHtml = s.items ? s.items.map(item => `
+      <li class="item">
+        <div class="item-details">
+          <div class="item-name">${escapeHtml(item.title)}${item.variantTitle ? ' — ' + escapeHtml(item.variantTitle) : ''}</div>
+          <div class="item-sub">
+            Qty: ${escapeHtml(String(item.quantityToReturn))} of ${escapeHtml(String(item.quantityPurchased))} &nbsp;·&nbsp;
+            Reason: ${escapeHtml(item.reason)}${item.otherReason ? ' — ' + escapeHtml(item.otherReason) : ''}
+            ${item.comments ? '<br>Comments: ' + escapeHtml(item.comments) : ''}
+          </div>
+        </div>
+      </li>`).join('') : '';
+
+    return `
+    <div class="card">
+      <div class="card-header" onclick="toggle(${i})">
+        <div class="card-meta">
+          <span class="order-num">${escapeHtml(s.orderNumber)}</span>
+          <span class="customer">${escapeHtml(s.customerName)}</span>
+          <span class="date">${formatDate(s.submittedAt)}</span>
+          <span class="badge ${statusClass}">${statusLabel}</span>
+        </div>
+        <svg class="chevron" id="chevron-${i}" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="card-body" id="body-${i}">
+        <div class="section">
+          <div class="section-title">Refund Preference</div>
+          <div class="refund-pref">${escapeHtml(s.refundPreference)}</div>
+        </div>
+        <div class="section">
+          <div class="section-title">${itemCount} Item${itemCount !== 1 ? 's' : ''} to Return</div>
+          <ul class="items-list">${itemsHtml}</ul>
+        </div>
+        <div class="section">
+          <div class="section-title">Policy Confirmations</div>
+          <div class="confirmations">
+            <div class="confirm-row">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Tags & ribbons still attached: ${escapeHtml(s.tagsAttached)}
+            </div>
+            <div class="confirm-row">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Read returns policy · Within 14 days · Responsible for postage · Understands 15% deduction
+            </div>
+          </div>
+        </div>
+        <div class="divider"></div>
+      </div>
+      <div class="card-footer">
+        <div class="meta-item">Email: <span>${escapeHtml(s.customerEmail)}</span></div>
+        <div class="meta-item">Order placed: <span>${escapeHtml(s.orderDate)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggle(i) {
+  const body = document.getElementById('body-' + i);
+  const chevron = document.getElementById('chevron-' + i);
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+renderSubmissions();
+</script>
+</body>
+</html>

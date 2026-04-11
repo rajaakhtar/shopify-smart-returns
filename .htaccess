@@ -1,0 +1,4 @@
+# Allow Shopify admin to embed this app in an iframe
+<IfModule mod_headers.c>
+    Header always unset X-Frame-Options
+</IfModule>

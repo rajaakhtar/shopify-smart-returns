@@ -47,6 +47,23 @@ module.exports = async function lookupOrder(req, res) {
       ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim()
       : 'Customer';
 
+    // Fetch product images for any line items missing an image
+    const itemsMissingImages = order.line_items.filter(item => !item.image);
+    const productImages = {};
+    if (itemsMissingImages.length > 0) {
+      const uniqueProductIds = [...new Set(itemsMissingImages.map(i => i.product_id).filter(Boolean))];
+      await Promise.all(
+        uniqueProductIds.map(async (productId) => {
+          try {
+            const productData = await shopifyFetch(`/products/${productId}.json?fields=id,image`);
+            productImages[productId] = productData.product?.image?.src || '';
+          } catch {
+            productImages[productId] = '';
+          }
+        })
+      );
+    }
+
     // Map line items
     const lineItems = order.line_items.map(item => ({
       id: item.id,
@@ -55,7 +72,7 @@ module.exports = async function lookupOrder(req, res) {
       quantity: item.quantity,
       price: item.price,
       currency: order.currency,
-      imageUrl: item.image ? item.image.src : '',
+      imageUrl: item.image?.src || productImages[item.product_id] || '',
     }));
 
     return res.json({
