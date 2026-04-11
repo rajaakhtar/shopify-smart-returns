@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { sendReturnEmail } = require('../utils/mailer');
+const { buildEmailHtml } = require('../utils/emailBuilder');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 
@@ -56,56 +57,11 @@ module.exports = async function submitReturn(req, res) {
       return res.json({ success: false, message: 'Please confirm all policy requirements.' });
     }
 
-    // Format plain-text email body
-    const separator = '─'.repeat(40);
-    const submittedAt = new Date().toUTCString();
-
-    let itemsList = '';
-    items.forEach((item, index) => {
-      itemsList += `${index + 1}. ${item.title}`;
-      if (item.variantTitle) itemsList += ` — ${item.variantTitle}`;
-      itemsList += `\n`;
-      itemsList += `   Price: £${item.price}\n`;
-      itemsList += `   Qty to return: ${item.quantityToReturn} of ${item.quantityPurchased}\n`;
-      itemsList += `   Reason: ${item.reason}\n`;
-      if (item.otherReason) itemsList += `   Specified reason: ${item.otherReason}\n`;
-      itemsList += `   Comments: ${item.comments || '—'}\n\n`;
-    });
-
-    const emailBody = `Return Request — Order ${orderNumber}
-
-Customer: ${customerName} (${customerEmail})
-Order: ${orderNumber} (placed ${orderDate})
-
-Refund Preference: ${refundPreference}
-
-Items to Return:
-${separator}
-${itemsList}${separator}
-
-Policy Confirmations:
-✓ Tags and ribbons still attached: ${tagsAttached.toUpperCase()}
-✓ Read returns policy: YES
-✓ Order delivered within 14 days: YES
-✓ Responsible for safe return postage: YES
-✓ Understands 15% deduction condition: YES
-
-Submitted: ${submittedAt}
-`;
-
+    const submittedAt = new Date().toISOString();
     const subject = `Return Request — Order ${orderNumber}`;
-
-    let emailStatus = 'sent';
-    try {
-      await sendReturnEmail(process.env.RETURNS_EMAIL, subject, emailBody);
-    } catch (emailError) {
-      console.error('Email send failed:', emailError);
-      emailStatus = 'failed';
-    }
-
-    saveSubmission({
+    const submission = {
       id: Date.now(),
-      submittedAt: new Date().toISOString(),
+      submittedAt,
       orderNumber,
       orderDate,
       customerName,
@@ -113,8 +69,19 @@ Submitted: ${submittedAt}
       refundPreference,
       tagsAttached,
       items,
-      emailStatus,
-    });
+    };
+
+    const emailHtml = buildEmailHtml(submission);
+
+    let emailStatus = 'sent';
+    try {
+      await sendReturnEmail(process.env.RETURNS_EMAIL, subject, emailHtml, customerEmail);
+    } catch (emailError) {
+      console.error('Email send failed:', emailError);
+      emailStatus = 'failed';
+    }
+
+    saveSubmission({ ...submission, emailStatus });
 
     if (emailStatus === 'failed') {
       return res.json({ success: false, message: 'Your return was recorded but we could not send the confirmation email. Please contact us directly.' });

@@ -12,10 +12,14 @@ const proxyRoute = require('./routes/proxy');
 const lookupOrderRoute = require('./routes/lookupOrder');
 const submitReturnRoute = require('./routes/submitReturn');
 const adminRoute = require('./routes/admin');
+const adminResendRoute = require('./routes/adminResend');
 const checkOrigin = require('./middleware/checkOrigin');
 
 // GET / - Admin dashboard (embedded in Shopify admin)
 app.get('/', adminRoute);
+
+// POST /admin-resend - Re-send admin email for a submission (called from admin dashboard)
+app.post('/admin-resend', adminResendRoute);
 
 // GET /proxy - Serve the returns form HTML (Shopify app proxy)
 // This route goes through HMAC verification

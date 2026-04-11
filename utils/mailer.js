@@ -18,12 +18,13 @@ const transporter = nodemailer.createTransport({
  * @param {string} textBody - Plain text email body
  * @returns {Promise<object>} - Nodemailer send result
  */
-async function sendReturnEmail(to, subject, textBody) {
+async function sendReturnEmail(to, subject, htmlBody, replyTo) {
   const mailOptions = {
-    from: `"Smart Returns" <${process.env.SMTP_USER}>`,
+    from: `"Smart Returns — Momina" <${process.env.SMTP_USER}>`,
     to,
     subject,
-    text: textBody,
+    html: htmlBody,
+    ...(replyTo && { replyTo }),
   };
 
   return transporter.sendMail(mailOptions);
