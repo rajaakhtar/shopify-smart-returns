@@ -78,13 +78,13 @@ module.exports = async function submitReturn(req, res) {
       await sendReturnEmail(process.env.RETURNS_EMAIL, subject, emailHtml, customerEmail);
     } catch (emailError) {
       console.error('Email send failed:', emailError);
-      emailStatus = 'failed';
+      emailStatus = emailError.message || 'failed';
     }
 
     saveSubmission({ ...submission, emailStatus });
 
-    if (emailStatus === 'failed') {
-      return res.json({ success: false, message: 'Your return was recorded but we could not send the confirmation email. Please contact us directly.' });
+    if (emailStatus !== 'sent') {
+      return res.json({ success: false, message: `Return recorded but email failed: ${emailStatus}` });
     }
 
     return res.json({ success: true, message: 'Return request submitted successfully.' });

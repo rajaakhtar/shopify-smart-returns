@@ -1,10 +1,11 @@
 const nodemailer = require('nodemailer');
 
 // Configure Gmail SMTP transport
+// Port 465 + secure:true (SSL) is more reliable on shared hosting than 587 STARTTLS
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // Uses STARTTLS
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT, 10),
+  secure: false,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
