@@ -48,7 +48,7 @@ function buildEmailHtml(submission) {
 
     <!-- Header -->
     <tr>
-      <td style="background:#4a1e5d;padding:20px 32px 15px;">
+      <td style="background:#4a1e5d;padding:20px 32px 15px;text-align:center;">
         ${logoHtml}
       </td>
     </tr>
