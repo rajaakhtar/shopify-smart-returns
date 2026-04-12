@@ -739,12 +739,8 @@
       const qty = parseInt(document.getElementById(`sr-qty-${idx}`).value, 10) || 1;
       const comments = document.getElementById(`sr-comments-${idx}`).value.trim();
 
-      const displayTitle = item.variantTitle
-        ? `${item.title} — ${item.variantTitle}`
-        : item.title;
-
       items.push({
-        title: displayTitle,
+        title: item.title,
         variantTitle: item.variantTitle || '',
         price: item.price,
         quantityPurchased: item.quantity,
