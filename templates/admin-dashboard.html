@@ -75,13 +75,16 @@
 
 <div class="header">
   <h1>Smart Returns</h1>
-  <span class="count" id="submission-count"></span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="count" id="submission-count"></span>
+    <button class="save-btn" id="toggle-template-btn" onclick="toggleTemplate()" style="font-size:12px;padding:5px 12px;">✉ Customer Reply</button>
+  </div>
 </div>
 
 <div class="container">
 
-  <!-- Customer Reply Template -->
-  <div class="template-section">
+  <!-- Customer Reply Template (hidden by default) -->
+  <div class="template-section" id="template-section" style="display:none;">
     <div class="template-section-header">
       <div>
         <h2>Customer Reply Template</h2>
@@ -270,6 +273,30 @@ if (savedTemplateHtml) {
   quill.root.innerHTML = savedTemplateHtml;
 }
 
+function toggleTemplate() {
+  const section = document.getElementById('template-section');
+  const btn = document.getElementById('toggle-template-btn');
+  const isHidden = section.style.display === 'none';
+  section.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? '✕ Hide Reply' : '✉ Customer Reply';
+}
+
+function quillToEmailHtml(html) {
+  // 1. Blank lines (<p><br></p>) → placeholder to avoid double-counting
+  let r = html.replace(/<p[^>]*>\s*<br\s*\/?>\s*<\/p>/gi, '[[BR]]');
+  // 2. Strip opening <p> tags
+  r = r.replace(/<p[^>]*>/gi, '');
+  // 3. Closing </p> → <br>
+  r = r.replace(/<\/p>/gi, '<br>');
+  // 4. Restore blank lines as <br>
+  r = r.replace(/\[\[BR\]\]/g, '<br>');
+  // 5. Cap consecutive <br> at 2
+  r = r.replace(/(<br\s*\/?>){3,}/gi, '<br><br>');
+  // 6. Strip leading/trailing <br>
+  r = r.replace(/^(<br\s*\/?>)+/i, '').replace(/(<br\s*\/?>)+$/i, '');
+  return r;
+}
+
 async function saveTemplate() {
   const btn = document.getElementById('save-template-btn');
   const statusEl = document.getElementById('template-status');
@@ -279,10 +306,10 @@ async function saveTemplate() {
   statusEl.className = 'template-status';
 
   try {
-    const resp = await fetch(baseUrl + '/admin-save-template', {
+    const resp = await fetch(baseUrl + '/admin-resend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html: quill.root.innerHTML, token: adminToken }),
+      body: JSON.stringify({ action: 'save-template', html: btoa(unescape(encodeURIComponent(quillToEmailHtml(quill.root.innerHTML)))), token: adminToken }),
     });
     const data = await resp.json();
     if (data.success) {
