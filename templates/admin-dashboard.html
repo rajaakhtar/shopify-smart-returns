@@ -68,6 +68,7 @@
 <script>
 const submissions = __SUBMISSIONS_JSON__;
 const adminToken = __ADMIN_TOKEN__;
+const baseUrl = __BASE_URL__;
 
 const app = document.getElementById('app');
 const countEl = document.getElementById('submission-count');
@@ -186,7 +187,7 @@ async function resend(i, submissionId) {
   btn.textContent = 'Sending…';
   btn.className = 'resend-btn';
   try {
-    const resp = await fetch('/admin-resend', {
+    const resp = await fetch(baseUrl + '/admin-resend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ submissionId, token: adminToken }),

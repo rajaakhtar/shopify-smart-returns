@@ -47,7 +47,8 @@ module.exports = function admin(req, res) {
   const template = fs.readFileSync(TEMPLATE, 'utf8');
   const html = template
     .replace('__SUBMISSIONS_JSON__', JSON.stringify(submissions))
-    .replace('__ADMIN_TOKEN__', JSON.stringify(process.env.ADMIN_SECRET || ''));
+    .replace('__ADMIN_TOKEN__', JSON.stringify(process.env.ADMIN_SECRET || ''))
+    .replace('__BASE_URL__', JSON.stringify(process.env.APP_URL || 'https://smartreturns.rajaakhtar.com'));
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 };
