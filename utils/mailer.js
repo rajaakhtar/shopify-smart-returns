@@ -6,9 +6,9 @@
  * @param {string} htmlBody  - HTML email body
  * @param {string} [replyTo] - Optional reply-to email address
  */
-async function sendReturnEmail(to, subject, htmlBody, replyTo) {
+async function sendReturnEmail(to, subject, htmlBody, replyTo, senderName) {
   const payload = {
-    sender: { name: 'Smart Returns — Momina', email: 'info@momina.co.uk' },
+    sender: { name: senderName || 'MOMINA Designer Outfit Collection', email: 'info@momina.co.uk' },
     to: [{ email: to }],
     subject,
     htmlContent: htmlBody,

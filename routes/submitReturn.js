@@ -98,7 +98,7 @@ module.exports = async function submitReturn(req, res) {
       const templateHtml = loadCustomerTemplate();
       const customerHtml = buildCustomerEmailHtml(submission, templateHtml);
       const customerSubject = `Your Return Request — Order ${orderNumber}`;
-      await sendReturnEmail(customerEmail, customerSubject, customerHtml, process.env.RETURNS_EMAIL);
+      await sendReturnEmail(customerEmail, customerSubject, customerHtml, process.env.RETURNS_EMAIL, 'MOMINA Designer Outfit Collection');
     } catch (customerEmailError) {
       console.error('Customer email send failed:', customerEmailError);
     }
