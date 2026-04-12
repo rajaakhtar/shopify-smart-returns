@@ -9,7 +9,7 @@ function buildEmailHtml(submission) {
 
   const logoUrl = process.env.STORE_LOGO_URL || '';
   const logoHtml = logoUrl
-    ? `<img src="${logoUrl}" alt="Momina" height="48" style="max-height:48px;display:block;">`
+    ? `<img src="${logoUrl}" alt="Momina" height="48" style="max-height:48px;">`
     : `<span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:3px;">MOMINA</span>`;
 
   const formattedDate = new Date(submittedAt).toLocaleString('en-GB', {
@@ -48,7 +48,7 @@ function buildEmailHtml(submission) {
 
     <!-- Header -->
     <tr>
-      <td style="background:#1a1a1a;padding:24px 32px;">
+      <td style="background:#4a1e5d;padding:20px 32px 15px;">
         ${logoHtml}
       </td>
     </tr>
@@ -125,7 +125,6 @@ function buildEmailHtml(submission) {
     <tr>
       <td style="background:#f7f7f7;padding:16px 32px;border-top:1px solid #eeeeee;">
         <p style="margin:0;font-size:12px;color:#999999;">Submitted: ${formattedDate}</p>
-        <p style="margin:4px 0 0;font-size:12px;color:#999999;">Reply to this email to respond directly to the customer.</p>
       </td>
     </tr>
 

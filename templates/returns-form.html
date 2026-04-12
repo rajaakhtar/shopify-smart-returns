@@ -592,7 +592,8 @@
               <label class="sr-label" for="sr-reason-${idx}">Reason for return <span style="color:#dc3545">*</span></label>
               <select class="sr-select" id="sr-reason-${idx}" data-idx="${idx}">
                 <option value="">Select a reason...</option>
-                <option value="Wrong size">Wrong size</option>
+                <option value="Size too big">Size too big</option>
+                <option value="Size too small">Size too small</option>
                 <option value="Damaged or defective">Damaged or defective</option>
                 <option value="Not as described">Not as described</option>
                 <option value="Changed my mind">Changed my mind</option>
@@ -602,7 +603,11 @@
             </div>
             <div class="sr-field" id="sr-other-field-${idx}" style="display:none;">
               <label class="sr-label" for="sr-other-${idx}">Please specify <span style="color:#dc3545">*</span></label>
-              <input class="sr-input" type="text" id="sr-other-${idx}" placeholder="Describe your reason...">
+              <input class="sr-input" type="text" id="sr-other-${idx}" placeholder="Describe your reason..." maxlength="150" autocomplete="off">
+              <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                <span id="sr-other-error-${idx}" style="font-size:12px;color:#dc3545;display:none;">Please use letters, numbers and common punctuation only.</span>
+                <span id="sr-other-count-${idx}" style="font-size:12px;color:#999;margin-left:auto;">0 / 150</span>
+              </div>
             </div>
             <div class="sr-field">
               <label class="sr-label" for="sr-comments-${idx}">Additional comments <span style="color:#888;font-weight:400;">(optional)</span></label>
@@ -636,6 +641,22 @@
         validateForm();
       });
 
+      // Other input: live counter + character validation
+      const otherInput = document.getElementById(`sr-other-${idx}`);
+      const otherCount = document.getElementById(`sr-other-count-${idx}`);
+      const otherError = document.getElementById(`sr-other-error-${idx}`);
+      // Allow letters, numbers, spaces and common punctuation; block < > { } \ ` which enable injection
+      const ALLOWED = /^[a-zA-Z0-9 .,!?'"()\-:;&#@%+/\n]*$/;
+      otherInput.addEventListener('input', () => {
+        const val = otherInput.value;
+        const len = val.length;
+        otherCount.textContent = `${len} / 150`;
+        const invalid = !ALLOWED.test(val);
+        otherError.style.display = invalid ? 'inline' : 'none';
+        otherInput.style.borderColor = invalid ? '#dc3545' : '';
+        validateForm();
+      });
+
       // Validate on any input change
       card.addEventListener('change', validateForm);
       card.addEventListener('input', validateForm);
@@ -666,10 +687,11 @@
         anySelected = true;
         const reason = document.getElementById(`sr-reason-${idx}`);
         if (!reason || !reason.value) valid = false;
-        // If "Other" selected, also need the text field
+        // If "Other" selected, also need the text field — non-empty and valid chars
         if (reason && reason.value === 'Other') {
           const otherInput = document.getElementById(`sr-other-${idx}`);
-          if (!otherInput || !otherInput.value.trim()) valid = false;
+          const ALLOWED = /^[a-zA-Z0-9 .,!?'"()\-:;&#@%+/\n]*$/;
+          if (!otherInput || !otherInput.value.trim() || !ALLOWED.test(otherInput.value)) valid = false;
         }
       }
     });
