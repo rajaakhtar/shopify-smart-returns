@@ -2,8 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const { sendReturnEmail } = require('../utils/mailer');
 const { buildEmailHtml } = require('../utils/emailBuilder');
+const { buildCustomerEmailHtml } = require('../utils/customerEmailBuilder');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+const TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
+
+function loadCustomerTemplate() {
+  try {
+    if (fs.existsSync(TEMPLATE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(TEMPLATE_FILE, 'utf8'));
+      return data.html || '';
+    }
+  } catch {}
+  return '';
+}
 
 function saveSubmission(submission) {
   const dataDir = path.join(__dirname, '..', 'data');
@@ -79,6 +91,16 @@ module.exports = async function submitReturn(req, res) {
     } catch (emailError) {
       console.error('Email send failed:', emailError);
       emailStatus = emailError.message || 'failed';
+    }
+
+    // Send customer confirmation email (best-effort — don't fail the submission if it errors)
+    try {
+      const templateHtml = loadCustomerTemplate();
+      const customerHtml = buildCustomerEmailHtml(submission, templateHtml);
+      const customerSubject = `Your Return Request — Order ${orderNumber}`;
+      await sendReturnEmail(customerEmail, customerSubject, customerHtml, process.env.RETURNS_EMAIL);
+    } catch (customerEmailError) {
+      console.error('Customer email send failed:', customerEmailError);
     }
 
     saveSubmission({ ...submission, emailStatus });

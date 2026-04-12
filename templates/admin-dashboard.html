@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Returns — Admin</title>
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f6f6f7; color: #202223; font-size: 14px; }
@@ -49,6 +50,20 @@
     .resend-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .resend-btn.success { border-color: #1a6b1a; color: #1a6b1a; background: #f3fbf3; }
     .resend-btn.error { border-color: #b91c1c; color: #b91c1c; background: #fff8f8; }
+    .template-section { background: #fff; border: 1px solid #e1e3e5; border-radius: 8px; margin-bottom: 24px; overflow: hidden; }
+    .template-section-header { padding: 16px 20px; border-bottom: 1px solid #e1e3e5; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .template-section-header h2 { font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 3px; }
+    .template-section-header p { font-size: 13px; color: #6d7175; margin: 0; }
+    .save-btn { font-size: 13px; font-weight: 500; padding: 7px 16px; border-radius: 6px; border: none; background: #4a1e5d; color: #fff; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background 0.15s; }
+    .save-btn:hover:not(:disabled) { background: #3a1649; }
+    .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .template-editor-wrap { padding: 16px 20px 0; }
+    .template-status { padding: 10px 20px 14px; font-size: 13px; min-height: 36px; }
+    .template-status.success { color: #1a6b1a; }
+    .template-status.error { color: #b91c1c; }
+    /* Override Quill toolbar border radius */
+    .ql-toolbar.ql-snow { border-radius: 6px 6px 0 0; border-color: #e1e3e5; }
+    .ql-container.ql-snow { border-radius: 0 0 6px 6px; border-color: #e1e3e5; min-height: 180px; font-size: 14px; }
     @media (max-width: 600px) {
       .container { padding: 12px; }
       .card-meta { gap: 8px; }
@@ -63,12 +78,33 @@
   <span class="count" id="submission-count"></span>
 </div>
 
-<div class="container" id="app"></div>
+<div class="container">
+
+  <!-- Customer Reply Template -->
+  <div class="template-section">
+    <div class="template-section-header">
+      <div>
+        <h2>Customer Reply Template</h2>
+        <p>This message is sent automatically to the customer when they submit a return request.</p>
+      </div>
+      <button class="save-btn" id="save-template-btn" onclick="saveTemplate()">Save Template</button>
+    </div>
+    <div class="template-editor-wrap">
+      <div id="quill-editor"></div>
+    </div>
+    <div class="template-status" id="template-status"></div>
+  </div>
+
+  <!-- Return Submissions -->
+  <div id="app"></div>
+
+</div>
 
 <script>
 const submissions = __SUBMISSIONS_JSON__;
 const adminToken = __ADMIN_TOKEN__;
 const baseUrl = __BASE_URL__;
+const savedTemplateHtml = __CUSTOMER_TEMPLATE_HTML__;
 
 const app = document.getElementById('app');
 const countEl = document.getElementById('submission-count');
@@ -212,6 +248,58 @@ async function resend(i, submissionId) {
 }
 
 renderSubmissions();
+</script>
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+const quill = new Quill('#quill-editor', {
+  theme: 'snow',
+  placeholder: 'Write your customer reply message here…',
+  modules: {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      [{ 'header': [1, 2, 3, false] }],
+      ['link'],
+      ['clean'],
+    ],
+  },
+});
+
+// Load saved template
+if (savedTemplateHtml) {
+  quill.root.innerHTML = savedTemplateHtml;
+}
+
+async function saveTemplate() {
+  const btn = document.getElementById('save-template-btn');
+  const statusEl = document.getElementById('template-status');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  statusEl.textContent = '';
+  statusEl.className = 'template-status';
+
+  try {
+    const resp = await fetch(baseUrl + '/admin-save-template', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html: quill.root.innerHTML, token: adminToken }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      statusEl.textContent = '✓ Template saved successfully.';
+      statusEl.className = 'template-status success';
+    } else {
+      statusEl.textContent = '✗ ' + (data.message || 'Save failed.');
+      statusEl.className = 'template-status error';
+    }
+  } catch {
+    statusEl.textContent = '✗ Network error — could not save template.';
+    statusEl.className = 'template-status error';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Save Template';
+}
 </script>
 </body>
 </html>

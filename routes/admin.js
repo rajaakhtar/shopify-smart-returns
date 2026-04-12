@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+const CUSTOMER_TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
 const TEMPLATE = path.join(__dirname, '..', 'templates', 'admin-dashboard.html');
 
 const ACCESS_RESTRICTED = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Access Restricted</title>
@@ -44,11 +45,17 @@ module.exports = function admin(req, res) {
     try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch {}
   }
 
+  let customerTemplateHtml = '';
+  if (fs.existsSync(CUSTOMER_TEMPLATE_FILE)) {
+    try { customerTemplateHtml = JSON.parse(fs.readFileSync(CUSTOMER_TEMPLATE_FILE, 'utf8')).html || ''; } catch {}
+  }
+
   const template = fs.readFileSync(TEMPLATE, 'utf8');
   const html = template
     .replace('__SUBMISSIONS_JSON__', JSON.stringify(submissions))
     .replace('__ADMIN_TOKEN__', JSON.stringify(process.env.ADMIN_SECRET || ''))
-    .replace('__BASE_URL__', JSON.stringify(process.env.APP_URL || 'https://smartreturns.rajaakhtar.com'));
+    .replace('__BASE_URL__', JSON.stringify(process.env.APP_URL || 'https://smartreturns.rajaakhtar.com'))
+    .replace('__CUSTOMER_TEMPLATE_HTML__', JSON.stringify(customerTemplateHtml));
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 };
