@@ -64,6 +64,10 @@
     /* Override Quill toolbar border radius */
     .ql-toolbar.ql-snow { border-radius: 6px 6px 0 0; border-color: #e1e3e5; }
     .ql-container.ql-snow { border-radius: 0 0 6px 6px; border-color: #e1e3e5; min-height: 180px; font-size: 14px; }
+    .html-source { display: none; width: 100%; min-height: 180px; box-sizing: border-box; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.5; padding: 12px; border: 1px solid #e1e3e5; border-radius: 6px; color: #222; resize: vertical; outline: none; }
+    .source-btn { font-size: 12px; font-weight: 500; padding: 5px 11px; border-radius: 6px; border: 1px solid #c4cdd5; background: #fff; color: #444; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+    .source-btn:hover { background: #f6f6f7; }
+    .source-btn.active { background: #f0e8f5; border-color: #4a1e5d; color: #4a1e5d; }
     @media (max-width: 600px) {
       .container { padding: 12px; }
       .card-meta { gap: 8px; }
@@ -90,10 +94,14 @@
         <h2>Customer Reply Template</h2>
         <p>This message is sent automatically to the customer when they submit a return request.</p>
       </div>
-      <button class="save-btn" id="save-template-btn" onclick="saveTemplate()">Save Template</button>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="source-btn" id="source-btn" onclick="toggleSource()">&lt;/&gt; HTML</button>
+        <button class="save-btn" id="save-template-btn" onclick="saveTemplate()">Save Template</button>
+      </div>
     </div>
     <div class="template-editor-wrap">
       <div id="quill-editor"></div>
+      <textarea id="html-source" class="html-source" spellcheck="false"></textarea>
     </div>
     <div class="template-status" id="template-status"></div>
   </div>
@@ -108,6 +116,7 @@ const submissions = __SUBMISSIONS_JSON__;
 const adminToken = __ADMIN_TOKEN__;
 const baseUrl = __BASE_URL__;
 const savedTemplateHtml = __CUSTOMER_TEMPLATE_HTML__;
+const savedTemplateQuillHtml = __CUSTOMER_TEMPLATE_QUILL_HTML__;
 
 const app = document.getElementById('app');
 const countEl = document.getElementById('submission-count');
@@ -268,9 +277,38 @@ const quill = new Quill('#quill-editor', {
   },
 });
 
-// Load saved template
-if (savedTemplateHtml) {
-  quill.root.innerHTML = savedTemplateHtml;
+// Load saved template using the proper Quill API to avoid rendering glitches
+if (savedTemplateQuillHtml) {
+  quill.clipboard.dangerouslyPasteHTML(savedTemplateQuillHtml);
+}
+
+let sourceMode = false;
+
+function toggleSource() {
+  const editorEl = document.getElementById('quill-editor');
+  const sourceEl = document.getElementById('html-source');
+  const btn = document.getElementById('source-btn');
+  sourceMode = !sourceMode;
+  if (sourceMode) {
+    sourceEl.value = quill.root.innerHTML;
+    editorEl.style.display = 'none';
+    sourceEl.style.display = 'block';
+    btn.classList.add('active');
+    btn.textContent = '✎ Visual';
+  } else {
+    quill.clipboard.dangerouslyPasteHTML(sourceEl.value);
+    sourceEl.style.display = 'none';
+    editorEl.style.display = 'block';
+    btn.classList.remove('active');
+    btn.textContent = '</> HTML';
+  }
+}
+
+function getEditorHtml() {
+  if (sourceMode) {
+    return document.getElementById('html-source').value;
+  }
+  return quill.root.innerHTML;
 }
 
 function toggleTemplate() {
@@ -309,7 +347,12 @@ async function saveTemplate() {
     const resp = await fetch(baseUrl + '/admin-resend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save-template', html: btoa(unescape(encodeURIComponent(quillToEmailHtml(quill.root.innerHTML)))), token: adminToken }),
+      body: JSON.stringify({
+        action: 'save-template',
+        html: btoa(unescape(encodeURIComponent(quillToEmailHtml(getEditorHtml())))),
+        quillHtml: btoa(unescape(encodeURIComponent(getEditorHtml()))),
+        token: adminToken,
+      }),
     });
     const data = await resp.json();
     if (data.success) {

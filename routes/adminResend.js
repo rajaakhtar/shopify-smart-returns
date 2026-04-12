@@ -15,15 +15,16 @@ module.exports = async function adminResend(req, res) {
 
   // Handle save-template action
   if (req.body.action === 'save-template') {
-    const { html: encodedHtml } = req.body;
+    const { html: encodedHtml, quillHtml: encodedQuillHtml } = req.body;
     if (encodedHtml === undefined) {
       return res.status(400).json({ success: false, message: 'Missing html' });
     }
     try {
       const html = Buffer.from(encodedHtml, 'base64').toString('utf8');
+      const quillHtml = encodedQuillHtml ? Buffer.from(encodedQuillHtml, 'base64').toString('utf8') : html;
       const dataDir = path.join(__dirname, '..', 'data');
       if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-      fs.writeFileSync(TEMPLATE_FILE, JSON.stringify({ html }, null, 2));
+      fs.writeFileSync(TEMPLATE_FILE, JSON.stringify({ html, quillHtml }, null, 2));
       return res.json({ success: true });
     } catch (err) {
       console.error('saveTemplate error:', err);
