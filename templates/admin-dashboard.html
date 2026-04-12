@@ -87,17 +87,17 @@
   <h1>Smart Returns</h1>
   <div style="display:flex;align-items:center;gap:12px;">
     <span class="count" id="submission-count"></span>
-    <button class="save-btn" id="toggle-template-btn" onclick="toggleTemplate()" style="font-size:12px;padding:5px 12px;">✉ Customer Reply</button>
+    <button class="save-btn" id="toggle-template-btn" onclick="toggleTemplate()" style="font-size:12px;padding:5px 12px;">✎ Auto-Reply</button>
   </div>
 </div>
 
 <div class="container">
 
-  <!-- Customer Reply Template (hidden by default) -->
+  <!-- Auto-Reply Template (hidden by default) -->
   <div class="template-section" id="template-section" style="display:none;">
     <div class="template-section-header">
       <div>
-        <h2>Customer Reply Template</h2>
+        <h2>Auto-Reply Template</h2>
         <p>This message is sent automatically to the customer when they submit a return request.</p>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;">
@@ -298,7 +298,7 @@ renderSubmissions();
 <script>
 const quill = new Quill('#quill-editor', {
   theme: 'snow',
-  placeholder: 'Write your customer reply message here…',
+  placeholder: 'Write your customer auto-reply message here…',
   modules: {
     toolbar: [
       ['bold', 'italic', 'underline'],
@@ -349,7 +349,7 @@ function toggleTemplate() {
   const btn = document.getElementById('toggle-template-btn');
   const isHidden = section.style.display === 'none';
   section.style.display = isHidden ? 'block' : 'none';
-  btn.textContent = isHidden ? '✕ Hide Reply' : '✉ Customer Reply';
+  btn.textContent = isHidden ? '✕ Hide Auto-Reply' : '✎ Auto-Reply';
 }
 
 function quillToEmailHtml(html) {
