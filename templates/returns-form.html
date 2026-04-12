@@ -1,11 +1,6 @@
 {% layout 'theme' %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Start a Return — Momina</title>
-  <style>
+{% assign page_title = 'Returns Form' %}
+<style>
     /* ===== BASE ===== */
     .sr-wrap {
       font-family: inherit;
@@ -319,8 +314,6 @@
       .sr-item-header { flex-wrap: wrap; }
     }
   </style>
-</head>
-<body>
 <div class="sr-wrap">
 
   <!-- ===== STAGE 1: ORDER LOOKUP ===== -->
@@ -522,7 +515,7 @@
     lookupBtn.disabled = true;
 
     try {
-      const resp = await fetch('/apps/returns/api/lookup-order', {
+      const resp = await fetch('/tools/returns/api/lookup-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderNumber, email }),
@@ -776,7 +769,7 @@
     stage2Spinner.style.display = 'block';
 
     try {
-      const resp = await fetch('/apps/returns/api/submit-return', {
+      const resp = await fetch('/tools/returns/api/submit-return', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -839,5 +832,3 @@
 
 })();
 </script>
-</body>
-</html>
