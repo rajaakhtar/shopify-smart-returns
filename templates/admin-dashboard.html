@@ -127,7 +127,6 @@ const submissions = __SUBMISSIONS_JSON__;
 const adminToken = __ADMIN_TOKEN__;
 const baseUrl = __BASE_URL__;
 const savedTemplateHtml = __CUSTOMER_TEMPLATE_HTML__;
-const savedTemplateQuillHtml = __CUSTOMER_TEMPLATE_QUILL_HTML__;
 
 const app = document.getElementById('app');
 const countEl = document.getElementById('submission-count');
@@ -310,9 +309,9 @@ const quill = new Quill('#quill-editor', {
   },
 });
 
-// Load saved template using the proper Quill API to avoid rendering glitches
-if (savedTemplateQuillHtml) {
-  quill.clipboard.dangerouslyPasteHTML(savedTemplateQuillHtml);
+// Load saved template into Quill
+if (savedTemplateHtml) {
+  quill.clipboard.dangerouslyPasteHTML(savedTemplateHtml);
 }
 
 let sourceMode = false;
@@ -323,7 +322,7 @@ function toggleSource() {
   const btn = document.getElementById('source-btn');
   sourceMode = !sourceMode;
   if (sourceMode) {
-    sourceEl.value = quill.root.innerHTML;
+    sourceEl.value = quillToEmailHtml(quill.root.innerHTML);
     editorEl.style.display = 'none';
     sourceEl.style.display = 'block';
     btn.classList.add('active');
@@ -383,7 +382,6 @@ async function saveTemplate() {
       body: JSON.stringify({
         action: 'save-template',
         html: btoa(unescape(encodeURIComponent(quillToEmailHtml(getEditorHtml())))),
-        quillHtml: btoa(unescape(encodeURIComponent(getEditorHtml()))),
         token: adminToken,
       }),
     });

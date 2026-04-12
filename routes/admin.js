@@ -46,12 +46,10 @@ module.exports = function admin(req, res) {
   }
 
   let customerTemplateHtml = '';
-  let customerTemplateQuillHtml = '';
   if (fs.existsSync(CUSTOMER_TEMPLATE_FILE)) {
     try {
       const tpl = JSON.parse(fs.readFileSync(CUSTOMER_TEMPLATE_FILE, 'utf8'));
       customerTemplateHtml = tpl.html || '';
-      customerTemplateQuillHtml = tpl.quillHtml || tpl.html || '';
     } catch {}
   }
 
@@ -60,8 +58,7 @@ module.exports = function admin(req, res) {
     .replace('__SUBMISSIONS_JSON__', JSON.stringify(submissions))
     .replace('__ADMIN_TOKEN__', JSON.stringify(process.env.ADMIN_SECRET || ''))
     .replace('__BASE_URL__', JSON.stringify(process.env.APP_URL || 'https://smartreturns.rajaakhtar.com'))
-    .replace('__CUSTOMER_TEMPLATE_HTML__', JSON.stringify(customerTemplateHtml))
-    .replace('__CUSTOMER_TEMPLATE_QUILL_HTML__', JSON.stringify(customerTemplateQuillHtml));
+    .replace('__CUSTOMER_TEMPLATE_HTML__', JSON.stringify(customerTemplateHtml));
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 };
