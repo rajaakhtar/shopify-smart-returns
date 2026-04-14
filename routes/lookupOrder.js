@@ -1,4 +1,8 @@
+const fs = require('fs');
+const path = require('path');
 const { shopifyFetch } = require('../utils/shopify');
+
+const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 
 /**
  * POST /proxy/api/lookup-order
@@ -73,10 +77,29 @@ module.exports = async function lookupOrder(req, res) {
       imageUrl: item.image?.src || productImages[item.product_id] || '',
     }));
 
+    // Check for existing open submission for this order
+    const formattedOrderNumber = `#${order.order_number}`;
+    let submissions = [];
+    if (fs.existsSync(DATA_FILE)) {
+      try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch {}
+    }
+    const openSubmission = submissions.find(s =>
+      s.orderNumber === formattedOrderNumber && s.status !== 'processed' && s.status !== 'cancelled'
+    );
+    if (openSubmission) {
+      return res.json({
+        success: false,
+        hasOpenSubmission: true,
+        orderNumber: formattedOrderNumber,
+        customerName,
+        customerEmail: order.email,
+      });
+    }
+
     return res.json({
       success: true,
       order: {
-        orderNumber: `#${order.order_number}`,
+        orderNumber: formattedOrderNumber,
         orderDate: formattedDate,
         customerName,
         customerEmail: order.email,

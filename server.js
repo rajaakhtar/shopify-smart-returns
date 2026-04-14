@@ -11,6 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 const proxyRoute = require('./routes/proxy');
 const lookupOrderRoute = require('./routes/lookupOrder');
 const submitReturnRoute = require('./routes/submitReturn');
+const submissionIssueRoute = require('./routes/submissionIssue');
 const adminRoute = require('./routes/admin');
 const adminResendRoute = require('./routes/adminResend');
 const adminSaveTemplateRoute = require('./routes/adminSaveTemplate');
@@ -36,6 +37,9 @@ app.post('/proxy/api/lookup-order', checkOrigin, lookupOrderRoute);
 // POST /proxy/api/submit-return - Submit return request (called by frontend JS)
 // Restricted to requests originating from momina.co.uk or the Shopify store
 app.post('/proxy/api/submit-return', checkOrigin, submitReturnRoute);
+
+// POST /proxy/api/submission-issue - Customer reports issue with existing open submission
+app.post('/proxy/api/submission-issue', checkOrigin, submissionIssueRoute);
 
 // Catch-all: any other direct access to this server returns Access Restricted
 const ACCESS_RESTRICTED_HTML = `<!DOCTYPE html>

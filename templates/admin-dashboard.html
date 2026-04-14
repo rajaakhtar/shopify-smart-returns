@@ -26,6 +26,8 @@
     .card-list { border: 1px solid #e1e3e5; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; }
     .complete-btn { font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px; border: 1px solid #1a6b1a; background: #f3fbf3; color: #1a6b1a; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
     .complete-btn:hover { background: #e0f5e0; }
+    .cancel-btn { font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px; border: 1px solid #c4cdd5; background: #fff; color: #b91c1c; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+    .cancel-btn:hover { background: #fff5f5; }
     .no-results { padding: 28px; text-align: center; color: #6d7175; font-size: 14px; border: 1px solid #e1e3e5; border-top: none; border-radius: 0 0 8px 8px; background: #fff; }
     .card { background: #fff; border-bottom: 1px solid #e1e3e5; overflow: hidden; }
     .card:last-child { border-bottom: none; }
@@ -123,6 +125,7 @@
   <div class="tabs">
     <button class="tab active" id="tab-open" onclick="switchTab('open')">Open Requests</button>
     <button class="tab" id="tab-processed" onclick="switchTab('processed')">Processed</button>
+    <button class="tab" id="tab-cancelled" onclick="switchTab('cancelled')">Cancelled</button>
   </div>
 
   <!-- Search -->
@@ -159,23 +162,28 @@ function switchTab(tab) {
   currentTab = tab;
   document.getElementById('tab-open').classList.toggle('active', tab === 'open');
   document.getElementById('tab-processed').classList.toggle('active', tab === 'processed');
+  document.getElementById('tab-cancelled').classList.toggle('active', tab === 'cancelled');
   document.getElementById('search-input').value = '';
   renderSubmissions();
 }
 
 function updateTabCounts() {
-  const openCount = submissions.filter(s => s.status !== 'processed').length;
+  const openCount = submissions.filter(s => s.status !== 'processed' && s.status !== 'cancelled').length;
   const processedCount = submissions.filter(s => s.status === 'processed').length;
+  const cancelledCount = submissions.filter(s => s.status === 'cancelled').length;
   document.getElementById('tab-open').textContent = `Open Requests (${openCount})`;
   document.getElementById('tab-processed').textContent = `Processed (${processedCount})`;
+  document.getElementById('tab-cancelled').textContent = `Cancelled (${cancelledCount})`;
   countEl.textContent = openCount === 1 ? '1 open' : `${openCount} open`;
 }
 
 function renderSubmissions() {
   updateTabCounts();
-  const filtered = submissions.filter(s =>
-    currentTab === 'processed' ? s.status === 'processed' : s.status !== 'processed'
-  );
+  const filtered = submissions.filter(s => {
+    if (currentTab === 'processed') return s.status === 'processed';
+    if (currentTab === 'cancelled') return s.status === 'cancelled';
+    return s.status !== 'processed' && s.status !== 'cancelled';
+  });
 
   if (filtered.length === 0) {
     app.innerHTML = `
@@ -183,7 +191,7 @@ function renderSubmissions() {
         <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
-        <p>${currentTab === 'processed' ? 'No processed submissions yet' : 'No open return requests'}</p>
+        <p>${currentTab === 'processed' ? 'No processed submissions yet' : currentTab === 'cancelled' ? 'No cancelled submissions' : 'No open return requests'}</p>
       </div>`;
     return;
   }
@@ -262,7 +270,7 @@ function renderSubmissions() {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="resend-btn" id="resend-${s.id}" onclick="resend('${s.id}')">↺ Re-send Admin Email</button>
-            ${currentTab === 'open' ? `<button class="complete-btn" onclick="markProcessed('${s.id}')">✓ Complete Process</button>` : ''}
+            ${currentTab === 'open' ? `<button class="complete-btn" onclick="markProcessed('${s.id}')">✓ Complete Process</button><button class="cancel-btn" onclick="cancelSubmission('${s.id}')">✕ Cancel Request</button>` : ''}
           </div>
         </div>
       </div>
@@ -286,6 +294,22 @@ function filterSubmissions(term) {
   });
   const noResultsEl = document.getElementById('no-results');
   if (noResultsEl) noResultsEl.style.display = (q && visible === 0) ? 'block' : 'none';
+}
+
+async function cancelSubmission(submissionId) {
+  try {
+    const resp = await fetch(baseUrl + '/admin-resend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel', submissionId, token: adminToken }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const sub = submissions.find(s => String(s.id) === String(submissionId));
+      if (sub) sub.status = 'cancelled';
+      renderSubmissions();
+    }
+  } catch {}
 }
 
 async function markProcessed(submissionId) {

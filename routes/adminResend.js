@@ -53,6 +53,13 @@ module.exports = async function adminResend(req, res) {
     return res.json({ success: true });
   }
 
+  // Handle cancel action
+  if (req.body.action === 'cancel') {
+    submission.status = 'cancelled';
+    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+    return res.json({ success: true });
+  }
+
   try {
     const subject = `Return Request — Order ${submission.orderNumber}`;
     const html = buildEmailHtml(submission);

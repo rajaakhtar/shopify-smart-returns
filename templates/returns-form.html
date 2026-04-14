@@ -300,7 +300,7 @@
       color: #555;
       margin: 0 0 24px;
     }
-    .sr-success-link {
+    .sr-success-link, .sr-back-link {
       display: inline-block;
       color: #333;
       text-decoration: underline;
@@ -368,8 +368,8 @@
           <span>Get a credit note <em>(Fast — Processed in 2 days)</em></span>
         </label>
         <label class="sr-radio-label">
-          <input type="radio" name="refund" value="Get a refund to source of payment (Slow — Processed in 2–3 weeks)">
-          <span>Get a refund to source of payment <em>(Slow — Processed in 2–3 weeks)</em></span>
+          <input type="radio" name="refund" value="Get a refund to source of payment (Slow — Processed in 1–2 weeks)">
+          <span>Get a refund to source of payment <em>(Slow — Processed in 1–2 weeks)</em></span>
         </label>
         <label class="sr-radio-label">
           <input type="radio" name="refund" value="Get an exchange for a different suit or size">
@@ -432,6 +432,28 @@
     <div class="sr-spinner" id="sr-stage2-spinner" style="display:none;margin-top:16px;"></div>
   </div>
 
+  <!-- ===== STAGE: OPEN SUBMISSION EXISTS ===== -->
+  <div id="sr-stage-duplicate" class="sr-stage">
+    <div class="sr-card">
+      <div style="background:#fff8e1;border:1px solid #f9a825;border-radius:8px;padding:14px 16px;margin-bottom:20px;">
+        <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#7a5200;">There is already an open return request for order <span id="sr-dup-order-num"></span>.</p>
+        <p style="margin:0;font-size:13px;color:#7a5200;line-height:1.6;">If your previous submission contains an error or you need to make changes, please describe the issue below and we'll get back to you.</p>
+      </div>
+      <div class="sr-field">
+        <label class="sr-label" for="sr-issue-textarea">Describe the issue with your previous return submission <span style="color:#c0392b;">*</span></label>
+        <textarea id="sr-issue-textarea" rows="5" placeholder="Please explain what went wrong or what you'd like to change…" style="width:100%;margin-top:6px;padding:10px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box;"></textarea>
+      </div>
+      <div id="sr-issue-error" class="sr-error" style="display:none;margin-top:10px;"></div>
+      <div id="sr-issue-success" style="display:none;margin-top:12px;padding:12px 14px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;font-size:14px;color:#2e7d32;">
+        ✓ Your message has been sent. We'll be in touch shortly.
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;flex-wrap:wrap;gap:10px;">
+        <span class="sr-back-link" id="sr-dup-back">← Search a different order</span>
+        <button class="sr-btn" id="sr-issue-btn" style="width:auto;padding:10px 24px;">Send Message</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== STAGE 3: SUCCESS ===== -->
   <div id="sr-stage-3" class="sr-stage">
     <div class="sr-card">
@@ -457,11 +479,13 @@
 
   // ===== STATE =====
   let orderData = null; // The fetched order object
+  let dupData = null;   // Data from duplicate open submission response
 
   // ===== ELEMENT REFS =====
   const stage1 = document.getElementById('sr-stage-1');
   const stage2 = document.getElementById('sr-stage-2');
   const stage3 = document.getElementById('sr-stage-3');
+  const stageDuplicate = document.getElementById('sr-stage-duplicate');
 
   const orderInput    = document.getElementById('sr-order-number');
   const emailInput    = document.getElementById('sr-email');
@@ -488,7 +512,7 @@
     el.classList.remove('visible');
   }
   function showStage(stageEl) {
-    [stage1, stage2, stage3].forEach(s => s.classList.remove('active'));
+    [stage1, stage2, stage3, stageDuplicate].forEach(s => s.classList.remove('active'));
     stageEl.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -532,6 +556,12 @@
         stage1Content.style.display = 'block';
         stage1Spinner.style.display = 'none';
         lookupBtn.disabled = false;
+        if (data.hasOpenSubmission) {
+          document.getElementById('sr-dup-order-num').textContent = data.orderNumber;
+          dupData = { orderNumber: data.orderNumber, customerName: data.customerName, customerEmail: data.customerEmail };
+          showStage(stageDuplicate);
+          return;
+        }
         showError(lookupError, data.message || 'Something went wrong. Please try again.');
         return;
       }
@@ -812,6 +842,59 @@
       showError(submitError, 'Network error. Please check your connection and try again.');
     }
   }
+
+  // ===== DUPLICATE STAGE: ISSUE FORM =====
+  document.getElementById('sr-dup-back').addEventListener('click', () => {
+    document.getElementById('sr-issue-textarea').value = '';
+    document.getElementById('sr-issue-error').style.display = 'none';
+    document.getElementById('sr-issue-success').style.display = 'none';
+    document.getElementById('sr-issue-btn').disabled = false;
+    dupData = null;
+    showStage(stage1);
+  });
+
+  document.getElementById('sr-issue-btn').addEventListener('click', async () => {
+    const issueBtn = document.getElementById('sr-issue-btn');
+    const issueError = document.getElementById('sr-issue-error');
+    const issueSuccess = document.getElementById('sr-issue-success');
+    const message = document.getElementById('sr-issue-textarea').value.trim();
+    issueError.style.display = 'none';
+    if (!message) {
+      issueError.textContent = 'Please describe the issue before sending.';
+      issueError.style.display = 'block';
+      return;
+    }
+    issueBtn.disabled = true;
+    issueBtn.textContent = 'Sending…';
+    try {
+      const resp = await fetch('/tools/returns/api/submission-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: dupData?.orderNumber || '',
+          customerName: dupData?.customerName || '',
+          customerEmail: dupData?.customerEmail || '',
+          message,
+        }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        issueSuccess.style.display = 'block';
+        issueBtn.style.display = 'none';
+        document.getElementById('sr-issue-textarea').disabled = true;
+      } else {
+        issueError.textContent = data.message || 'Failed to send. Please try again.';
+        issueError.style.display = 'block';
+        issueBtn.disabled = false;
+        issueBtn.textContent = 'Send Message';
+      }
+    } catch {
+      issueError.textContent = 'Network error. Please check your connection and try again.';
+      issueError.style.display = 'block';
+      issueBtn.disabled = false;
+      issueBtn.textContent = 'Send Message';
+    }
+  });
 
   // ===== STAGE 3: NEW RETURN =====
   newReturnBtn.addEventListener('click', () => {
