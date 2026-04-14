@@ -376,6 +376,12 @@
           <span>Get an exchange for a different suit or size</span>
         </label>
       </div>
+
+      <div id="sr-exchange-details" style="display:none;margin-top:16px;">
+        <label class="sr-label" for="sr-exchange-textarea" style="display:block;margin-bottom:6px;">Please enter Product Title, SKU and Size/Variant of each item you wish to receive in exchange <span style="color:#c0392b;">*</span></label>
+        <textarea id="sr-exchange-textarea" name="exchangeDetails" rows="5" placeholder="e.g. Sky Blue 3-Piece Suit, SKU: MDOC-101-00M, Size: Medium" style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box;"></textarea>
+        <p style="margin:10px 0 0;font-size:13px;color:#555;line-height:1.6;">Our Returns Team will be in touch to arrange your exchange and inform you of any refunds or balances due once the exchange has been processed.</p>
+      </div>
     </div>
 
     <!-- Section 3: Confirmations -->
@@ -656,7 +662,12 @@
     });
 
     // Refund + confirmations change listeners
-    document.querySelectorAll('input[name="refund"]').forEach(r => r.addEventListener('change', validateForm));
+    document.querySelectorAll('input[name="refund"]').forEach(r => r.addEventListener('change', () => {
+      const isExchange = r.value === 'Get an exchange for a different suit or size' && r.checked;
+      document.getElementById('sr-exchange-details').style.display = isExchange ? 'block' : 'none';
+      if (!isExchange) document.getElementById('sr-exchange-textarea').value = '';
+      validateForm();
+    }));
     document.querySelectorAll('input[name="tags"]').forEach(r => r.addEventListener('change', () => {
       document.getElementById('sr-tags-warning').style.display = r.value === 'No' && r.checked ? 'block' : 'none';
       validateForm();
@@ -693,6 +704,9 @@
     // Refund preference
     const refundSelected = document.querySelector('input[name="refund"]:checked');
     if (!refundSelected) valid = false;
+    if (refundSelected && refundSelected.value === 'Get an exchange for a different suit or size') {
+      if (!document.getElementById('sr-exchange-textarea').value.trim()) valid = false;
+    }
 
     // Tags radio — must be answered and must be "Yes"
     const tagsSelected = document.querySelector('input[name="tags"]:checked');
@@ -753,6 +767,7 @@
       customerEmail:orderData.customerEmail,
       orderDate:    orderData.orderDate,
       refundPreference,
+      exchangeDetails: document.getElementById('sr-exchange-textarea').value.trim() || null,
       tagsAttached,
       policyConfirmations: {
         readReturnsPolicy:       document.getElementById('sr-check-policy').checked,
@@ -814,6 +829,8 @@
     hideError(submitError);
     // Uncheck radios
     document.querySelectorAll('input[name="refund"], input[name="tags"]').forEach(r => r.checked = false);
+    document.getElementById('sr-exchange-textarea').value = '';
+    document.getElementById('sr-exchange-details').style.display = 'none';
     ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction'].forEach(id => {
       document.getElementById(id).checked = false;
     });
