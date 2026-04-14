@@ -10,7 +10,7 @@ function buildEmailHtml(submission) {
   const logoUrl = process.env.STORE_LOGO_URL || '';
   const logoHtml = logoUrl
     ? `<img src="${logoUrl}" alt="Momina" height="48" style="max-height:48px;">`
-    : `<span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:3px;">MOMINA</span>`;
+    : `<span style="color:#ffffff;text-align:center;font-size:20px;font-weight:700;letter-spacing:3px;">MOMINA</span>`;
 
   const formattedDate = new Date(submittedAt).toLocaleString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric',

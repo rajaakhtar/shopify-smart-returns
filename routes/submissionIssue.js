@@ -7,14 +7,19 @@ module.exports = async function submissionIssue(req, res) {
     return res.json({ success: false, message: 'Missing required fields.' });
   }
 
+  const logoUrl = process.env.STORE_LOGO_URL || '';
+  const logoHtml = logoUrl
+    ? `<img src="${logoUrl}" alt="Momina" height="48" style="max-height:48px;">`
+    : `<span style="color:#ffffff;text-align:center;font-size:20px;font-weight:700;letter-spacing:3px;">MOMINA</span>`;
+
   const subject = `Returns Issue — Order ${orderNumber}`;
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;padding:32px 16px;">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;border:1px solid #e0e0e0;margin:0 auto;">
-  <tr><td style="background:#4a1e5d;padding:18px 32px;border-radius:8px 8px 0 0;">
-    <span style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:2px;">MOMINA</span>
+  <tr><td style="background:#4a1e5d;padding:20px 32px 15px;text-align:center;border-radius:8px 8px 0 0;">
+    ${logoHtml}
   </td></tr>
   <tr><td style="background:#2d2d2d;padding:12px 32px;">
     <p style="margin:0;color:#ffffff;font-size:15px;font-weight:700;">Returns Issue — ${orderNumber}</p>
