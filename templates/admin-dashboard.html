@@ -15,11 +15,18 @@
     .empty { text-align: center; padding: 80px 24px; color: #6d7175; }
     .empty svg { margin-bottom: 16px; opacity: 0.4; }
     .empty p { font-size: 15px; }
-    .search-wrap { margin-bottom: 10px; }
-    .search-input { width: 100%; padding: 9px 14px; border: 1px solid #e1e3e5; border-radius: 8px; font-size: 14px; background: #fff; color: #202223; outline: none; }
-    .search-input:focus { border-color: #4a1e5d; }
-    .no-results { padding: 28px; text-align: center; color: #6d7175; font-size: 14px; }
-    .card-list { border: 1px solid #e1e3e5; border-radius: 8px; overflow: hidden; }
+    .tabs { display: flex; gap: 0; margin-bottom: 0; border: 1px solid #e1e3e5; border-radius: 8px 8px 0 0; overflow: hidden; background: #fff; }
+    .tab { flex: 1; padding: 10px 16px; font-size: 13px; font-weight: 500; background: #f6f6f7; border: none; border-right: 1px solid #e1e3e5; cursor: pointer; color: #6d7175; transition: background 0.15s; white-space: nowrap; }
+    .tab:last-child { border-right: none; }
+    .tab.active { background: #fff; color: #202223; }
+    .tab:hover:not(.active) { background: #f0f0f0; }
+    .search-wrap { margin-bottom: 0; }
+    .search-input { width: 100%; padding: 9px 14px; border: 1px solid #e1e3e5; border-top: none; border-bottom: none; font-size: 14px; background: #fff; color: #202223; outline: none; display: block; }
+    .search-input:focus { background: #fafafa; }
+    .card-list { border: 1px solid #e1e3e5; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; }
+    .complete-btn { font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 6px; border: 1px solid #1a6b1a; background: #f3fbf3; color: #1a6b1a; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+    .complete-btn:hover { background: #e0f5e0; }
+    .no-results { padding: 28px; text-align: center; color: #6d7175; font-size: 14px; border: 1px solid #e1e3e5; border-top: none; border-radius: 0 0 8px 8px; background: #fff; }
     .card { background: #fff; border-bottom: 1px solid #e1e3e5; overflow: hidden; }
     .card:last-child { border-bottom: none; }
     .card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; }
@@ -112,6 +119,12 @@
     <div class="template-status" id="template-status"></div>
   </div>
 
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-open" onclick="switchTab('open')">Open Requests</button>
+    <button class="tab" id="tab-processed" onclick="switchTab('processed')">Processed</button>
+  </div>
+
   <!-- Search -->
   <div class="search-wrap">
     <input class="search-input" id="search-input" type="text" placeholder="Search by order number, name or email…" oninput="filterSubmissions(this.value)">
@@ -130,6 +143,7 @@ const savedTemplateHtml = __CUSTOMER_TEMPLATE_HTML__;
 
 const app = document.getElementById('app');
 const countEl = document.getElementById('submission-count');
+let currentTab = 'open';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -141,21 +155,40 @@ function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function renderSubmissions() {
-  countEl.textContent = submissions.length === 1 ? '1 submission' : `${submissions.length} submissions`;
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-open').classList.toggle('active', tab === 'open');
+  document.getElementById('tab-processed').classList.toggle('active', tab === 'processed');
+  document.getElementById('search-input').value = '';
+  renderSubmissions();
+}
 
-  if (submissions.length === 0) {
+function updateTabCounts() {
+  const openCount = submissions.filter(s => s.status !== 'processed').length;
+  const processedCount = submissions.filter(s => s.status === 'processed').length;
+  document.getElementById('tab-open').textContent = `Open Requests (${openCount})`;
+  document.getElementById('tab-processed').textContent = `Processed (${processedCount})`;
+  countEl.textContent = openCount === 1 ? '1 open' : `${openCount} open`;
+}
+
+function renderSubmissions() {
+  updateTabCounts();
+  const filtered = submissions.filter(s =>
+    currentTab === 'processed' ? s.status === 'processed' : s.status !== 'processed'
+  );
+
+  if (filtered.length === 0) {
     app.innerHTML = `
-      <div class="empty">
+      <div class="empty" style="border:1px solid #e1e3e5;border-top:none;border-radius:0 0 8px 8px;background:#fff;">
         <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
-        <p>No return requests yet</p>
+        <p>${currentTab === 'processed' ? 'No processed submissions yet' : 'No open return requests'}</p>
       </div>`;
     return;
   }
 
-  app.innerHTML = '<div class="card-list">' + submissions.map((s, i) => {
+  app.innerHTML = '<div class="card-list">' + filtered.map(s => {
     const statusClass = s.emailStatus === 'sent' ? 'badge-sent' : 'badge-failed';
     const statusLabel = s.emailStatus === 'sent' ? '✓ Email sent' : '✗ Email failed';
     const itemCount = s.items ? s.items.length : 0;
@@ -177,22 +210,23 @@ function renderSubmissions() {
     const searchText = [s.orderNumber, s.customerName, s.customerEmail].join(' ').toLowerCase();
     return `
     <div class="card" data-search="${esc(searchText)}">
-      <div class="card-header" onclick="toggle(${i})">
+      <div class="card-header" onclick="toggle('${s.id}')">
         <div class="card-meta">
           <span class="order-num">${esc(s.orderNumber)}</span>
           <span class="customer">${esc(s.customerName)}</span>
           <span class="date">${formatDate(s.submittedAt)}</span>
           <span class="badge ${statusClass}">${statusLabel}</span>
         </div>
-        <svg class="chevron" id="chevron-${i}" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+        <svg class="chevron" id="chevron-${s.id}" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
         </svg>
       </div>
-      <div class="card-body" id="body-${i}">
+      <div class="card-body" id="body-${s.id}">
 
         <div class="section">
           <div class="section-title">Refund Preference</div>
           <div class="refund-pref">${esc(s.refundPreference)}</div>
+          ${s.exchangeDetails ? `<div style="margin-top:8px;font-size:13px;color:#202223;background:#f0e8f5;padding:8px 12px;border-radius:6px;white-space:pre-wrap;"><strong>Exchange details:</strong><br>${esc(s.exchangeDetails)}</div>` : ''}
         </div>
 
         <div class="section">
@@ -226,18 +260,19 @@ function renderSubmissions() {
             <div class="meta-item">Customer email: <span>${esc(s.customerEmail)}</span></div>
             <div class="meta-item">Order placed: <span>${esc(s.orderDate)}</span></div>
           </div>
-          <button class="resend-btn" id="resend-${i}" onclick="resend(${i}, '${s.id}')">
-            ↺ Re-send Admin Email
-          </button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="resend-btn" id="resend-${s.id}" onclick="resend('${s.id}')">↺ Re-send Admin Email</button>
+            ${currentTab === 'open' ? `<button class="complete-btn" onclick="markProcessed('${s.id}')">✓ Complete Process</button>` : ''}
+          </div>
         </div>
       </div>
     </div>`;
   }).join('') + '</div>';
 }
 
-function toggle(i) {
-  document.getElementById('body-' + i).classList.toggle('open');
-  document.getElementById('chevron-' + i).classList.toggle('open');
+function toggle(id) {
+  document.getElementById('body-' + id).classList.toggle('open');
+  document.getElementById('chevron-' + id).classList.toggle('open');
 }
 
 function filterSubmissions(term) {
@@ -249,20 +284,28 @@ function filterSubmissions(term) {
     card.style.display = match ? '' : 'none';
     if (match) visible++;
   });
-  // Show/hide no-results message
-  let noResults = document.getElementById('no-results');
-  if (!noResults) {
-    noResults = document.createElement('p');
-    noResults.id = 'no-results';
-    noResults.className = 'no-results';
-    noResults.textContent = 'No submissions match your search.';
-    document.getElementById('app').after(noResults);
-  }
-  noResults.style.display = (q && visible === 0) ? 'block' : 'none';
+  const noResultsEl = document.getElementById('no-results');
+  if (noResultsEl) noResultsEl.style.display = (q && visible === 0) ? 'block' : 'none';
 }
 
-async function resend(i, submissionId) {
-  const btn = document.getElementById('resend-' + i);
+async function markProcessed(submissionId) {
+  try {
+    const resp = await fetch(baseUrl + '/admin-resend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'mark-processed', submissionId, token: adminToken }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const sub = submissions.find(s => String(s.id) === String(submissionId));
+      if (sub) sub.status = 'processed';
+      renderSubmissions();
+    }
+  } catch {}
+}
+
+async function resend(submissionId) {
+  const btn = document.getElementById('resend-' + submissionId);
   btn.disabled = true;
   btn.textContent = 'Sending…';
   btn.className = 'resend-btn';
@@ -276,8 +319,6 @@ async function resend(i, submissionId) {
     if (data.success) {
       btn.textContent = '✓ Sent';
       btn.className = 'resend-btn success';
-      // Update badge in header
-      const badges = document.querySelectorAll(`#body-${i}`);
       setTimeout(() => { btn.disabled = false; btn.textContent = '↺ Re-send Admin Email'; btn.className = 'resend-btn'; }, 4000);
     } else {
       btn.textContent = '✗ Failed — ' + (data.message || 'Try again');

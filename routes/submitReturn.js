@@ -74,11 +74,13 @@ module.exports = async function submitReturn(req, res) {
     const submission = {
       id: Date.now(),
       submittedAt,
+      status: 'open',
       orderNumber,
       orderDate,
       customerName,
       customerEmail,
       refundPreference,
+      exchangeDetails: req.body.exchangeDetails || null,
       tagsAttached,
       items,
     };

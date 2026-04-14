@@ -46,12 +46,19 @@ module.exports = async function adminResend(req, res) {
     return res.status(404).json({ success: false, message: 'Submission not found' });
   }
 
+  // Handle mark-processed action
+  if (req.body.action === 'mark-processed') {
+    submission.status = 'processed';
+    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+    return res.json({ success: true });
+  }
+
   try {
     const subject = `Return Request — Order ${submission.orderNumber}`;
     const html = buildEmailHtml(submission);
     await sendReturnEmail(process.env.RETURNS_EMAIL, subject, html, submission.customerEmail);
 
-    // Update status in file
+    // Update emailStatus in file
     submission.emailStatus = 'sent';
     fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
 

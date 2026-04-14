@@ -4,7 +4,7 @@
 function buildEmailHtml(submission) {
   const {
     orderNumber, orderDate, customerName, customerEmail,
-    refundPreference, tagsAttached, items, submittedAt,
+    refundPreference, exchangeDetails, tagsAttached, items, submittedAt,
   } = submission;
 
   const logoUrl = process.env.STORE_LOGO_URL || '';
@@ -86,6 +86,7 @@ function buildEmailHtml(submission) {
       <td style="padding:0 32px 20px;">
         <p style="margin:0 0 8px;font-size:12px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;">Refund Preference</p>
         <p style="margin:0;font-size:14px;color:#222222;background:#f7f7f7;padding:10px 14px;border-radius:5px;border-left:3px solid #1a1a1a;">${esc(refundPreference)}</p>
+        ${exchangeDetails ? `<p style="margin:8px 0 0;font-size:13px;color:#222222;background:#f3eef8;padding:10px 14px;border-radius:5px;border-left:3px solid #4a1e5d;white-space:pre-wrap;"><strong>Exchange details:</strong><br>${esc(exchangeDetails)}</p>` : ''}
       </td>
     </tr>
 
