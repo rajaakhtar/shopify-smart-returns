@@ -73,6 +73,7 @@ module.exports = async function lookupOrder(req, res) {
       id: item.id,
       title: item.title,
       variantTitle: item.variant_title || '',
+      sku: item.sku || '',
       quantity: item.quantity,
       price: item.price,
       currency: order.currency,
@@ -133,6 +134,7 @@ module.exports = async function lookupOrder(req, res) {
       success: true,
       order: {
         orderNumber: formattedOrderNumber,
+        shopifyOrderId: order.id,
         orderDate: formattedDate,
         customerName,
         customerEmail: order.email,

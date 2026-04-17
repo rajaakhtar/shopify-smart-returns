@@ -38,6 +38,7 @@ module.exports = async function submitReturn(req, res) {
   try {
     const {
       orderNumber,
+      shopifyOrderId,
       customerName,
       customerEmail,
       customerId,
@@ -78,6 +79,7 @@ module.exports = async function submitReturn(req, res) {
       submittedAt,
       status: 'open',
       orderNumber,
+      shopifyOrderId: shopifyOrderId || null,
       orderDate,
       customerName,
       customerEmail,

@@ -73,6 +73,11 @@
     .load-rate-btn { font-size: 12px; padding: 4px 10px; border-radius: 5px; border: 1px solid #c4cdd5; background: #fff; color: #5c6bc0; cursor: pointer; transition: background 0.15s; }
     .load-rate-btn:hover:not(:disabled) { background: #f0f0ff; }
     .load-rate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .action-select { font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid #c4cdd5; background: #fff; color: #202223; cursor: pointer; }
+    .action-go-btn { font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 6px; border: 1px solid #c4cdd5; background: #fff; color: #202223; cursor: pointer; transition: background 0.15s; }
+    .action-go-btn:hover { background: #f6f6f7; }
+    .order-num { color: #202223; font-weight: 600; font-size: 15px; text-decoration: none; }
+    .order-num:hover { text-decoration: underline; }
     .template-section { background: #fff; border: 1px solid #e1e3e5; border-radius: 8px; margin-bottom: 24px; overflow: hidden; }
     .template-section-header { padding: 16px 20px; border-bottom: 1px solid #e1e3e5; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .template-section-header h2 { font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 3px; }
@@ -150,6 +155,7 @@
 const submissions = __SUBMISSIONS_JSON__;
 const adminToken = __ADMIN_TOKEN__;
 const baseUrl = __BASE_URL__;
+const shopDomain = __SHOP_DOMAIN__;
 const savedTemplateHtml = __CUSTOMER_TEMPLATE_HTML__;
 
 const app = document.getElementById('app');
@@ -214,6 +220,7 @@ function renderSubmissions() {
         <td>
           <strong>${esc(item.title)}</strong>
           ${item.variantTitle ? `<br><span style="color:#6d7175;font-size:12px;">${esc(item.variantTitle)}</span>` : ''}
+          ${item.sku ? `<br><span style="color:#8c9196;font-size:11px;">SKU: ${esc(item.sku)}</span>` : ''}
         </td>
         <td>${esc(String(item.quantityToReturn))} of ${esc(String(item.quantityPurchased))}</td>
         <td>£${esc(item.price)}</td>
@@ -228,7 +235,7 @@ function renderSubmissions() {
     <div class="card" data-search="${esc(searchText)}">
       <div class="card-header" onclick="toggle('${s.id}')">
         <div class="card-meta">
-          <span class="order-num">${esc(s.orderNumber)}</span>
+          <a class="order-num" href="${s.shopifyOrderId ? `https://admin.shopify.com/store/${shopDomain.replace('.myshopify.com','')}/orders/${s.shopifyOrderId}` : `https://${shopDomain}/admin/orders?query=${encodeURIComponent(s.orderNumber.replace('#',''))}`}" target="_blank" onclick="event.stopPropagation()">${esc(s.orderNumber)}</a>
           <span class="customer">${esc(s.customerName)}</span>
           <span class="date">${formatDate(s.submittedAt)}</span>
           <span class="badge ${statusClass}">${statusLabel}</span>
@@ -280,9 +287,15 @@ function renderSubmissions() {
               : `<button class="load-rate-btn" id="rate-btn-${s.id}" onclick="loadReturnsRate('${s.id}')">Load Returns Rate</button>`
             }</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="resend-btn" id="resend-${s.id}" onclick="resend('${s.id}')">↺ Re-send Admin Email</button>
-            ${currentTab === 'open' ? `<button class="complete-btn" onclick="markProcessed('${s.id}')">✓ Complete Process</button><button class="cancel-btn" onclick="cancelSubmission('${s.id}')">✕ Cancel Request</button>` : ''}
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select class="action-select" id="action-${s.id}">
+              <option value="">Select action…</option>
+              ${currentTab === 'open' ? `
+              <option value="complete">✓ Complete Process</option>
+              <option value="cancel">✕ Cancel Request</option>` : ''}
+              <option value="resend">↺ Re-send Admin Email</option>
+            </select>
+            <button class="action-go-btn" onclick="performAction('${s.id}')">Go</button>
           </div>
         </div>
       </div>
@@ -306,6 +319,16 @@ function filterSubmissions(term) {
   });
   const noResultsEl = document.getElementById('no-results');
   if (noResultsEl) noResultsEl.style.display = (q && visible === 0) ? 'block' : 'none';
+}
+
+function performAction(submissionId) {
+  const select = document.getElementById(`action-${submissionId}`);
+  const action = select.value;
+  if (!action) return;
+  select.value = '';
+  if (action === 'complete') markProcessed(submissionId);
+  else if (action === 'cancel') cancelSubmission(submissionId);
+  else if (action === 'resend') resend(submissionId);
 }
 
 async function cancelSubmission(submissionId) {

@@ -58,6 +58,7 @@ module.exports = function admin(req, res) {
     .replace('__SUBMISSIONS_JSON__', JSON.stringify(submissions))
     .replace('__ADMIN_TOKEN__', JSON.stringify(process.env.ADMIN_SECRET || ''))
     .replace('__BASE_URL__', JSON.stringify(process.env.APP_URL || 'https://smartreturns.rajaakhtar.com'))
+    .replace('__SHOP_DOMAIN__', JSON.stringify(process.env.SHOP_DOMAIN || ''))
     .replace('__CUSTOMER_TEMPLATE_HTML__', JSON.stringify(customerTemplateHtml));
   res.setHeader('Content-Type', 'text/html');
   res.send(html);

@@ -821,6 +821,7 @@
       items.push({
         title: item.title,
         variantTitle: item.variantTitle || '',
+        sku: item.sku || '',
         price: item.price,
         quantityPurchased: item.quantity,
         quantityToReturn: qty,
@@ -834,11 +835,12 @@
     const tagsAttached     = document.querySelector('input[name="tags"]:checked').value;
 
     const payload = {
-      orderNumber:  orderData.orderNumber,
-      customerName: orderData.customerName,
-      customerEmail:orderData.customerEmail,
-      customerId:   orderData.customerId || null,
-      orderDate:    orderData.orderDate,
+      orderNumber:    orderData.orderNumber,
+      shopifyOrderId: orderData.shopifyOrderId || null,
+      customerName:   orderData.customerName,
+      customerEmail:  orderData.customerEmail,
+      customerId:     orderData.customerId || null,
+      orderDate:      orderData.orderDate,
       refundPreference,
       exchangeDetails: document.getElementById('sr-exchange-textarea').value.trim() || null,
       tagsAttached,
