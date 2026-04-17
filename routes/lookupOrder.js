@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { shopifyFetch } = require('../utils/shopify');
 const { checkDelivery } = require('../services/royalMail');
+const { calculateReturnsRate } = require('../utils/returnsRate');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 
@@ -96,6 +97,19 @@ module.exports = async function lookupOrder(req, res) {
         customerEmail: order.email,
       });
     }
+
+    // Check returns rate — block if above 40% with at least 4 orders
+    try {
+      const customerId = order.customer?.id || null;
+      const { rate, totalOrders } = await calculateReturnsRate(customerId, order.email);
+      if (rate > 40 && totalOrders >= 4) {
+        return res.json({
+          success: false,
+          isBlocked: true,
+          rate,
+        });
+      }
+    } catch {}
 
     // Extract tracking from the most recent fulfilled shipment
     const fulfillment = (order.fulfillments || []).find(

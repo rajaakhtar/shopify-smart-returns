@@ -48,7 +48,7 @@ async function calculateReturnsRate(customerId, customerEmail) {
   }
 
   const rate = totalOrdered > 0 ? Math.round((totalReturned / totalOrdered) * 100) : 0;
-  return { totalOrdered, totalReturned, rate };
+  return { totalOrdered, totalReturned, rate, totalOrders: allOrdersMap.size };
 }
 
 module.exports = { calculateReturnsRate };

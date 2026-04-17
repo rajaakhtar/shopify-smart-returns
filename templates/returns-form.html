@@ -563,6 +563,11 @@
           showStage(stageDuplicate);
           return;
         }
+        if (data.isBlocked) {
+          lookupError.innerHTML = `Your current return rate is ${data.rate}%, which exceeds our returns policy threshold. This return request is not eligible to be processed online. If you would like to discuss this, please <a href="https://www.momina.co.uk/pages/contact-us" style="color:#b91c1c;text-decoration:underline;font-weight:bold;">contact us</a>.`;
+          lookupError.classList.add('visible');
+          return;
+        }
         showError(lookupError, data.message || 'Something went wrong. Please try again.');
         return;
       }
