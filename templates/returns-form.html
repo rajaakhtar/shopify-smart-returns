@@ -832,6 +832,7 @@
       orderNumber:  orderData.orderNumber,
       customerName: orderData.customerName,
       customerEmail:orderData.customerEmail,
+      customerId:   orderData.customerId || null,
       orderDate:    orderData.orderDate,
       refundPreference,
       exchangeDetails: document.getElementById('sr-exchange-textarea').value.trim() || null,

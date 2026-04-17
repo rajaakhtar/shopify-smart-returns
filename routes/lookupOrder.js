@@ -122,6 +122,7 @@ module.exports = async function lookupOrder(req, res) {
         orderDate: formattedDate,
         customerName,
         customerEmail: order.email,
+        customerId: order.customer?.id || null,
         lineItems,
         deliveryCheck,
       },

@@ -65,6 +65,14 @@
     .resend-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .resend-btn.success { border-color: #1a6b1a; color: #1a6b1a; background: #f3fbf3; }
     .resend-btn.error { border-color: #b91c1c; color: #b91c1c; background: #fff8f8; }
+    .returns-rate { font-size: 13px; color: #202223; display: flex; align-items: center; gap: 8px; }
+    .returns-rate-stat { font-weight: 600; }
+    .returns-rate-stat.high { color: #b91c1c; }
+    .returns-rate-stat.medium { color: #d97706; }
+    .returns-rate-stat.low { color: #1a6b1a; }
+    .load-rate-btn { font-size: 12px; padding: 4px 10px; border-radius: 5px; border: 1px solid #c4cdd5; background: #fff; color: #5c6bc0; cursor: pointer; transition: background 0.15s; }
+    .load-rate-btn:hover:not(:disabled) { background: #f0f0ff; }
+    .load-rate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .template-section { background: #fff; border: 1px solid #e1e3e5; border-radius: 8px; margin-bottom: 24px; overflow: hidden; }
     .template-section-header { padding: 16px 20px; border-bottom: 1px solid #e1e3e5; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .template-section-header h2 { font-size: 15px; font-weight: 600; color: #202223; margin-bottom: 3px; }
@@ -267,6 +275,10 @@ function renderSubmissions() {
           <div class="footer-meta">
             <div class="meta-item">Customer email: <span>${esc(s.customerEmail)}</span></div>
             <div class="meta-item">Order placed: <span>${esc(s.orderDate)}</span></div>
+            <div class="meta-item">Returns rate: ${s.returnsRate
+              ? `<span id="rate-${s.id}" class="returns-rate-stat ${s.returnsRate.rate >= 40 ? 'high' : s.returnsRate.rate >= 20 ? 'medium' : 'low'}">${s.returnsRate.rate}% (${s.returnsRate.totalReturned} of ${s.returnsRate.totalOrdered} items)</span>${currentTab === 'open' ? ` <button class="load-rate-btn" id="rate-btn-${s.id}" onclick="loadReturnsRate('${s.id}')" title="Refresh returns rate">↻</button>` : ''}`
+              : `<button class="load-rate-btn" id="rate-btn-${s.id}" onclick="loadReturnsRate('${s.id}')">Load Returns Rate</button>`
+            }</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="resend-btn" id="resend-${s.id}" onclick="resend('${s.id}')">↺ Re-send Admin Email</button>
@@ -465,6 +477,46 @@ async function saveTemplate() {
 
   btn.disabled = false;
   btn.textContent = 'Save Template';
+}
+
+async function loadReturnsRate(submissionId) {
+  const btn = document.getElementById(`rate-btn-${submissionId}`);
+  const existingStat = document.getElementById(`rate-${submissionId}`);
+  const isRefresh = !!existingStat;
+
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  try {
+    const resp = await fetch(baseUrl + '/admin-returns-rate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submissionId, token: adminToken }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const rateClass = data.rate >= 40 ? 'high' : data.rate >= 20 ? 'medium' : 'low';
+      const text = `${data.rate}% (${data.totalReturned} of ${data.totalOrdered} items)`;
+      if (isRefresh) {
+        existingStat.className = `returns-rate-stat ${rateClass}`;
+        existingStat.textContent = text;
+        btn.textContent = '↻';
+        btn.disabled = false;
+      } else {
+        const span = document.createElement('span');
+        span.id = `rate-${submissionId}`;
+        span.className = `returns-rate-stat ${rateClass}`;
+        span.textContent = text;
+        btn.replaceWith(span);
+      }
+    } else {
+      btn.textContent = isRefresh ? '↻' : 'Load Returns Rate';
+      btn.disabled = false;
+    }
+  } catch {
+    btn.textContent = isRefresh ? '↻' : 'Load Returns Rate';
+    btn.disabled = false;
+  }
 }
 </script>
 </body>

@@ -3,6 +3,7 @@ const path = require('path');
 const { sendReturnEmail } = require('../utils/mailer');
 const { buildEmailHtml } = require('../utils/emailBuilder');
 const { buildCustomerEmailHtml } = require('../utils/customerEmailBuilder');
+const { calculateReturnsRate } = require('../utils/returnsRate');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
@@ -39,6 +40,7 @@ module.exports = async function submitReturn(req, res) {
       orderNumber,
       customerName,
       customerEmail,
+      customerId,
       orderDate,
       refundPreference,
       tagsAttached,
@@ -79,6 +81,7 @@ module.exports = async function submitReturn(req, res) {
       orderDate,
       customerName,
       customerEmail,
+      customerId: customerId || null,
       refundPreference,
       exchangeDetails: req.body.exchangeDetails || null,
       tagsAttached,
@@ -105,7 +108,13 @@ module.exports = async function submitReturn(req, res) {
       console.error('Customer email send failed:', customerEmailError);
     }
 
-    saveSubmission({ ...submission, emailStatus });
+    // Calculate returns rate (best-effort — don't fail submission if it errors)
+    let returnsRate = null;
+    try {
+      returnsRate = await calculateReturnsRate(customerId || null, customerEmail);
+    } catch {}
+
+    saveSubmission({ ...submission, emailStatus, returnsRate });
 
     if (emailStatus !== 'sent') {
       return res.json({ success: false, message: `Return recorded but email failed: ${emailStatus}` });
