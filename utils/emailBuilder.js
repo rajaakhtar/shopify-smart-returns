@@ -118,6 +118,7 @@ function buildEmailHtml(submission) {
           <tr><td style="padding:4px 14px;font-size:13px;color:#333333;">${check} Order delivered within last 14 days</td></tr>
           <tr><td style="padding:4px 14px;font-size:13px;color:#333333;">${check} Responsible for safe return postage</td></tr>
           <tr><td style="padding:4px 14px;font-size:13px;color:#333333;">${check} Understands 15% deduction condition</td></tr>
+          <tr><td style="padding:4px 14px;font-size:13px;color:#333333;">${check} Understands delivery charges are non-refundable (£2.99 deducted if remaining order value drops below £70 threshold)</td></tr>
         </table>
       </td>
     </tr>

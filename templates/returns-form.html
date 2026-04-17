@@ -425,6 +425,10 @@
           <input type="checkbox" id="sr-check-deduction">
           <span>I understand that if the items are not returned in the same condition as they were delivered (original packaging removed, clothes inside-out, or rolled-up into a ball unfolded), then 15% will be deducted from the return total amount.</span>
         </label>
+        <label class="sr-confirm-item">
+          <input type="checkbox" id="sr-check-delivery-charge">
+          <span>I understand that delivery charges are non-refundable. If my order qualified for free delivery but the remaining order value after this return falls below the £70 free delivery threshold, a standard delivery fee of £2.99 will be deducted from my refund.</span>
+        </label>
       </div>
     </div>
 
@@ -729,7 +733,7 @@
       document.getElementById('sr-tags-warning').style.display = r.value === 'No' && r.checked ? 'block' : 'none';
       validateForm();
     }));
-    ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction'].forEach(id => {
+    ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction','sr-check-delivery-charge'].forEach(id => {
       document.getElementById(id).addEventListener('change', validateForm);
     });
 
@@ -787,8 +791,9 @@
     // Checkboxes
     if (!document.getElementById('sr-check-policy').checked)   valid = false;
     if (!(orderData?.deliveryCheck?.isEligibleForReturn === true) && !document.getElementById('sr-check-14days').checked) valid = false;
-    if (!document.getElementById('sr-check-postage').checked)  valid = false;
-    if (!document.getElementById('sr-check-deduction').checked)valid = false;
+    if (!document.getElementById('sr-check-postage').checked)         valid = false;
+    if (!document.getElementById('sr-check-deduction').checked)       valid = false;
+    if (!document.getElementById('sr-check-delivery-charge').checked) valid = false;
 
     submitBtn.disabled = !valid;
     return valid;
@@ -847,8 +852,9 @@
       policyConfirmations: {
         readReturnsPolicy:       document.getElementById('sr-check-policy').checked,
         within14Days:            (orderData?.deliveryCheck?.isEligibleForReturn === true) || document.getElementById('sr-check-14days').checked,
-        responsibleForPostage:   document.getElementById('sr-check-postage').checked,
-        understandsDeduction:    document.getElementById('sr-check-deduction').checked,
+        responsibleForPostage:        document.getElementById('sr-check-postage').checked,
+        understandsDeduction:         document.getElementById('sr-check-deduction').checked,
+        understandsDeliveryCharges:   document.getElementById('sr-check-delivery-charge').checked,
       },
       items,
     };
@@ -959,7 +965,7 @@
     document.querySelectorAll('input[name="refund"], input[name="tags"]').forEach(r => r.checked = false);
     document.getElementById('sr-exchange-textarea').value = '';
     document.getElementById('sr-exchange-details').style.display = 'none';
-    ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction'].forEach(id => {
+    ['sr-check-policy','sr-check-14days','sr-check-postage','sr-check-deduction','sr-check-delivery-charge'].forEach(id => {
       document.getElementById(id).checked = false;
     });
     showStage(stage1);

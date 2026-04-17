@@ -67,7 +67,8 @@ module.exports = async function submitReturn(req, res) {
       !confirmations.readReturnsPolicy ||
       !confirmations.within14Days ||
       !confirmations.responsibleForPostage ||
-      !confirmations.understandsDeduction
+      !confirmations.understandsDeduction ||
+      !confirmations.understandsDeliveryCharges
     ) {
       return res.json({ success: false, message: 'Please confirm all policy requirements.' });
     }
