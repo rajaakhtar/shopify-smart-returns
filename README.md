@@ -12,7 +12,8 @@ A custom Shopify app for momina.co.uk that provides an order-aware returns form 
 - **Returns rate check** — on order load, the app calculates the customer's historical return rate across all Shopify orders (by customer ID + email, to catch both account and guest checkout orders). If the rate exceeds 40% and the customer has placed 4 or more orders, the return form is blocked and they are directed to contact the store.
 - **Admin email** — formatted HTML email sent to the store team on every submission
 - **Customer confirmation email** — branded reply sent automatically to the customer; message body is customisable via the admin dashboard
-- **Admin dashboard** — lists all submissions with search, accordion detail view, direct Shopify order link, SKU display, returns rate indicator, and action dropdown
+- **Admin dashboard** — lists all submissions with search, accordion detail view, direct Shopify order link, SKU display, returns rate indicator, action dropdown, and inline refund processing
+- **Inline refund processing** — process refunds directly from the dashboard without opening Shopify; supports original payment refunds and store credit gift cards, with restock control, optional delivery cost refund, and automatic order note writing
 - **WYSIWYG email editor** — Quill.js rich-text editor in the dashboard for composing the customer reply template; includes raw HTML source toggle and Save button
 - **Theme integration** — form renders inside the Shopify storefront theme via App Proxy + Liquid layout
 - **Email via Brevo** — uses Brevo REST API (no SMTP ports required); sender domain authenticated with DKIM/DMARC
@@ -22,7 +23,7 @@ A custom Shopify app for momina.co.uk that provides an order-aware returns form 
 ## Prerequisites
 
 - Node.js 18+
-- A Shopify store with a custom app (Admin API access token with `read_orders` and `read_all_orders` scopes)
+- A Shopify store with a custom app (Admin API access token with `read_orders`, `read_all_orders`, `write_orders`, and `write_gift_cards` scopes)
 - A [Brevo](https://www.brevo.com) account with an API key and authenticated sending domain
 - A Royal Mail developer account with Tracking API V2 credentials (Client ID + Client Secret), subscribed to the Assessment or production plan
 
@@ -38,6 +39,8 @@ A custom Shopify app for momina.co.uk that provides an order-aware returns form 
 4. Select the following scopes and save:
    - `read_orders`
    - `read_all_orders` ← required to access orders older than 60 days (needed for returns rate calculation)
+   - `write_orders` ← required to create refunds and write order notes
+   - `write_gift_cards` ← required to issue store credit gift cards
 5. Click **Install app** — confirm the installation
 6. Under **API credentials**, copy:
    - **Admin API access token** (shown only once — save it securely)
@@ -132,7 +135,7 @@ The admin dashboard is served at the app root (`/`) and is accessible either:
 - **SKU display** — each returned item shows its variant and SKU
 - **Search** — filter by order number, customer name, or email
 - **Returns rate** — shows the customer's historical return rate (e.g. `8% (1 of 12 items)`) calculated from all Shopify orders. A refresh icon (↻) allows recalculating at any time for open submissions.
-- **Action dropdown** — Re-send Admin Email / Complete Process / Cancel Request, replacing individual buttons to prevent accidental actions
+- **Action dropdown** — Start Processing Return / Move to Processed / Cancel Request / Re-send Admin Email
 - **Customer reply template editor** — click the **Reply Template** button in the header to open the WYSIWYG editor; toggle `</> HTML` for raw source editing; click **Save Template**
 
 ### Returns Rate
@@ -144,6 +147,31 @@ Calculation logic:
 - **Total ordered** = sum of line item quantities on non-cancelled orders
 - **Total returned** = sum of quantities on refund line items where `restock_type` is `return` or `legacy_restock` (physical returns only — goodwill refunds with `no_restock` are excluded)
 - Requires the `read_all_orders` Shopify scope to access orders older than 60 days
+
+### Refund Processing
+
+Selecting **▶ Start Processing Return** from the action dropdown opens an inline processing panel within the submission card. No need to open Shopify.
+
+**Panel shows:**
+- Items being refunded with quantities, calculated amounts, and a **Restock** checkbox per item (ticked by default — untick if the item should not be restocked)
+- **Delivery cost** row showing the original shipping amount with an optional refund checkbox (disabled and unchecked if delivery was free)
+- **Other items on this order** — read-only list of items from the same order that are not being returned, for context
+- Refund method and total amount, with a warning if the £2.99 delivery deduction applies
+
+**Refund methods:**
+- **Original payment** — calls Shopify Refunds API; Shopify sends a refund confirmation email to the customer. If delivery was free and the remaining order value after the return falls below £70, £2.99 is automatically deducted from the refund total.
+- **Store credit / Exchange** — issues a Shopify gift card for the full refund amount (no £2.99 deduction applies). 12-month expiry. Shopify notifies the customer by email. The gift card note includes the order number and SKUs for reference.
+
+**On confirmation:**
+- Refund or gift card is processed in Shopify
+- Return reasons (with SKUs and any additional comments) are appended to the Shopify order note
+- Submission is automatically moved to **Processed** status
+
+**Discrepancy detection:**
+Before showing the panel, the app checks whether the items have already been partially or fully refunded in Shopify. If a discrepancy is found (e.g. 1 of 2 items already refunded manually), the panel shows a warning with a direct link to the Shopify order and only **Move to Processed** remains available.
+
+**Move to Processed (manual):**
+When used without going through the refund panel (e.g. refund was processed manually in Shopify), the app still appends the return reasons to the Shopify order note.
 
 ### Customer Reply Template
 
@@ -200,6 +228,9 @@ Check that `SHOPIFY_API_SECRET` in your `.env` matches the API secret key from y
 - Confirm `SHOPIFY_ACCESS_TOKEN` is the current, valid access token
 - Check `SHOP_DOMAIN` is in the format `yourstore.myshopify.com` (no `https://`)
 
+**Refund processing returns 403 or "Unauthorized" from Shopify**
+The `write_orders` scope is required to create refunds and write order notes. The `write_gift_cards` scope is required to issue store credit gift cards. Add both scopes under Shopify Admin → Settings → Apps and sales channels → Develop apps → your app → Configuration → Admin API access scopes, then reinstall the app.
+
 **Returns rate only shows recent orders**
 The `read_all_orders` scope is required. Add it under Shopify Admin → Settings → Apps and sales channels → Develop apps → your app → Configuration → Admin API access scopes.
 
@@ -238,8 +269,10 @@ smart-returns/
 │   ├── lookupOrder.js               # POST /proxy/api/lookup-order — order fetch + eligibility checks
 │   ├── submitReturn.js              # POST /proxy/api/submit-return
 │   ├── admin.js                     # GET / — admin dashboard (HMAC or token auth)
-│   ├── adminResend.js               # POST /admin-resend — resend email + save template
-│   └── adminReturnsRate.js          # POST /admin-returns-rate — load/refresh returns rate
+│   ├── adminResend.js               # POST /admin-resend — resend email, save template, mark processed (writes order note)
+│   ├── adminReturnsRate.js          # POST /admin-returns-rate — load/refresh returns rate
+│   ├── adminCalculateRefund.js      # POST /admin-calculate-refund — preview refund amounts, check discrepancies
+│   └── adminProcessRefund.js        # POST /admin-process-refund — execute refund or gift card, write order note
 ├── middleware/
 │   ├── verifyProxy.js               # Shopify app proxy HMAC verification
 │   └── checkOrigin.js               # Origin restriction for API routes

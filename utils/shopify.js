@@ -60,10 +60,59 @@ async function shopifyFetch(endpoint) {
   });
 
   if (!response.ok) {
-    throw new Error(`Shopify API error: ${response.status} ${response.statusText}`);
+    const text = await response.text();
+    throw new Error(`Shopify API error: ${response.status} ${text}`);
   }
 
   return response.json();
 }
 
-module.exports = { shopifyFetch };
+/**
+ * Makes an authenticated POST request to the Shopify Admin API.
+ */
+async function shopifyPost(endpoint, body) {
+  const token = await getAccessToken();
+  const url = `https://${process.env.SHOP_DOMAIN}/admin/api/2026-04${endpoint}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Shopify-Access-Token': token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Shopify API error: ${response.status} ${text}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Makes an authenticated PUT request to the Shopify Admin API.
+ */
+async function shopifyPut(endpoint, body) {
+  const token = await getAccessToken();
+  const url = `https://${process.env.SHOP_DOMAIN}/admin/api/2026-04${endpoint}`;
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'X-Shopify-Access-Token': token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Shopify API error: ${response.status} ${text}`);
+  }
+
+  return response.json();
+}
+
+module.exports = { shopifyFetch, shopifyPost, shopifyPut };

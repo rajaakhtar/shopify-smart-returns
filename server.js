@@ -16,6 +16,8 @@ const adminRoute = require('./routes/admin');
 const adminResendRoute = require('./routes/adminResend');
 const adminSaveTemplateRoute = require('./routes/adminSaveTemplate');
 const adminReturnsRateRoute = require('./routes/adminReturnsRate');
+const adminCalculateRefundRoute = require('./routes/adminCalculateRefund');
+const adminProcessRefundRoute = require('./routes/adminProcessRefund');
 const checkOrigin = require('./middleware/checkOrigin');
 
 // GET / - Admin dashboard (embedded in Shopify admin)
@@ -29,6 +31,12 @@ app.post('/admin-save-template', adminSaveTemplateRoute);
 
 // POST /admin-returns-rate - Load and save returns rate for a submission
 app.post('/admin-returns-rate', adminReturnsRateRoute);
+
+// POST /admin-calculate-refund - Preview refund amounts and check for discrepancies
+app.post('/admin-calculate-refund', adminCalculateRefundRoute);
+
+// POST /admin-process-refund - Execute refund or gift card and write order note
+app.post('/admin-process-refund', adminProcessRefundRoute);
 
 // GET /proxy - Serve the returns form HTML (Shopify app proxy)
 // This route goes through HMAC verification

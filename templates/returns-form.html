@@ -364,8 +364,8 @@
       <h2 class="sr-section-title">How would you like to be refunded?</h2>
       <div class="sr-radio-group" id="sr-refund-group">
         <label class="sr-radio-label">
-          <input type="radio" name="refund" value="Get a credit note (Fast — Processed in 2 days)">
-          <span>Get a credit note <em>(Fast — Processed in 2 days)</em></span>
+          <input type="radio" name="refund" value="Get Store Credit (Fast — Processed in 2 days)">
+          <span>Get Store Credit <em>(Fast — Processed in 2 days)</em></span>
         </label>
         <label class="sr-radio-label">
           <input type="radio" name="refund" value="Get a refund to source of payment (Slow — Processed in 1–2 weeks)">
@@ -427,7 +427,7 @@
         </label>
         <label class="sr-confirm-item">
           <input type="checkbox" id="sr-check-delivery-charge">
-          <span>I understand that delivery charges are non-refundable. If my order qualified for free delivery but the remaining order value after this return falls below the £70 free delivery threshold, a standard delivery fee of £2.99 will be deducted from my refund.</span>
+          <span>I understand that delivery charges are non-refundable. If my order qualified for free delivery but the remaining order value after this return falls below the £70 free delivery threshold, a standard delivery fee of £2.99 will be deducted from my refund.<br><b>Note:</b> If you choose Store Credit, no delivery deduction will be made, and the full refund amount will be issued as store credit.</span>
         </label>
       </div>
     </div>
@@ -824,6 +824,7 @@
       const comments = document.getElementById(`sr-comments-${idx}`).value.trim();
 
       items.push({
+        lineItemId: item.lineItemId || item.id || null,
         title: item.title,
         variantTitle: item.variantTitle || '',
         sku: item.sku || '',

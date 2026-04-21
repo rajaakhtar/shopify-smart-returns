@@ -71,6 +71,7 @@ module.exports = async function lookupOrder(req, res) {
 
     const lineItems = order.line_items.map(item => ({
       id: item.id,
+      lineItemId: item.id,
       title: item.title,
       variantTitle: item.variant_title || '',
       sku: item.sku || '',
