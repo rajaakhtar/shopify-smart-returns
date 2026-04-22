@@ -441,6 +441,8 @@ async function startProcessingReturn(submissionId) {
       ? `<div class="process-summary">Refund method: <strong>${refundMethodLabel}</strong><br>A gift card for <strong>£${parseFloat(data.finalRefundAmount).toFixed(2)}</strong> will be created and Shopify will notify the customer.</div>`
       : `<div class="process-summary">Refund method: <strong>Original payment</strong><br>Total refund: <strong>£${parseFloat(data.finalRefundAmount).toFixed(2)}</strong>${data.applyDeliveryDeduction ? ' <span style="color:#d97706;">(after £2.99 delivery deduction)</span>' : ''}</div>`;
 
+    window['calcData_' + submissionId] = data;
+
     panel.innerHTML = `
       <h4>Process Return</h4>
       <table class="process-table">
@@ -450,14 +452,15 @@ async function startProcessingReturn(submissionId) {
       ${otherItemsSection}
       ${deductionWarning}
       ${refundLabel}
-      <button class="process-confirm-btn" id="confirm-btn-${submissionId}" onclick="confirmRefund('${submissionId}', ${JSON.stringify(data).replace(/</g, '\\u003c')})">Confirm &amp; Process</button>`;
+      <button class="process-confirm-btn" id="confirm-btn-${submissionId}" onclick="confirmRefund('${submissionId}')">Confirm &amp; Process</button>`;
 
   } catch (err) {
     panel.innerHTML = `<div class="process-discrepancy">⚠️ Error loading refund details. Please try again.</div>`;
   }
 }
 
-async function confirmRefund(submissionId, calcData) {
+async function confirmRefund(submissionId) {
+  const calcData = window['calcData_' + submissionId];
   const btn = document.getElementById(`confirm-btn-${submissionId}`);
   btn.disabled = true;
   btn.textContent = 'Processing…';
