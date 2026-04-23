@@ -2,44 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { sendReturnEmail } = require('../utils/mailer');
 const { buildEmailHtml } = require('../utils/emailBuilder');
-const { shopifyFetch, shopifyPut } = require('../utils/shopify');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
-
-async function appendOrderNote(shopifyOrderId, noteText) {
-  try {
-    const orderData = await shopifyFetch(`/orders/${shopifyOrderId}.json?fields=id,note`);
-    const existing = orderData.order?.note || '';
-    const newNote = existing ? `${existing}\n\n${noteText}` : noteText;
-    await shopifyPut(`/orders/${shopifyOrderId}.json`, {
-      order: { id: shopifyOrderId, note: newNote },
-    });
-  } catch (err) {
-    console.error('appendOrderNote failed:', err.message);
-  }
-}
-
-function buildProcessedNoteText(submission) {
-  const date = new Date().toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  });
-
-  const itemLines = (submission.items || []).map(item => {
-    const reasonText = item.otherReason
-      ? `${item.reason}: ${item.otherReason}`
-      : item.reason;
-    const comments = item.comments ? ` (${item.comments})` : '';
-    return `- ${item.sku || item.title} x${item.quantityToReturn} — ${reasonText}${comments}`;
-  });
-
-  return [
-    `--- Marked as processed ${date} ---`,
-    `Refund preference: ${submission.refundPreference || 'N/A'}`,
-    'Items in return request:',
-    ...itemLines,
-  ].join('\n');
-}
 
 module.exports = async function adminResend(req, res) {
   // Auth: token in request body
@@ -81,16 +46,9 @@ module.exports = async function adminResend(req, res) {
     return res.status(404).json({ success: false, message: 'Submission not found' });
   }
 
-  // Handle mark-processed action — also writes return reasons as order note
   if (req.body.action === 'mark-processed') {
     submission.status = 'processed';
     fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
-
-    if (submission.shopifyOrderId) {
-      const noteText = buildProcessedNoteText(submission);
-      await appendOrderNote(submission.shopifyOrderId, noteText);
-    }
-
     return res.json({ success: true });
   }
 

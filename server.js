@@ -35,7 +35,7 @@ app.post('/admin-returns-rate', adminReturnsRateRoute);
 // POST /admin-calculate-refund - Preview refund amounts and check for discrepancies
 app.post('/admin-calculate-refund', adminCalculateRefundRoute);
 
-// POST /admin-process-refund - Execute refund or gift card and write order note
+// POST /admin-process-refund - Execute refund or gift card; note attached to refund entry in timeline
 app.post('/admin-process-refund', adminProcessRefundRoute);
 
 // GET /proxy - Serve the returns form HTML (Shopify app proxy)

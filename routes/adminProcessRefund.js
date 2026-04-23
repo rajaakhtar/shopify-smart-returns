@@ -1,17 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { shopifyFetch, shopifyPost, shopifyPut } = require('../utils/shopify');
+const { shopifyPost } = require('../utils/shopify');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
-
-async function appendOrderNote(shopifyOrderId, noteText) {
-  const orderData = await shopifyFetch(`/orders/${shopifyOrderId}.json?fields=id,note`);
-  const existing = orderData.order?.note || '';
-  const newNote = existing ? `${existing}\n\n${noteText}` : noteText;
-  await shopifyPut(`/orders/${shopifyOrderId}.json`, {
-    order: { id: shopifyOrderId, note: newNote },
-  });
-}
 
 function buildNoteText(submission, method, giftCardCode, applyDeliveryDeduction, finalAmount) {
   const date = new Date().toLocaleDateString('en-GB', {
@@ -26,15 +17,14 @@ function buildNoteText(submission, method, giftCardCode, applyDeliveryDeduction,
     const reasonText = item.otherReason
       ? `${item.reason}: ${item.otherReason}`
       : item.reason;
-    const comments = item.comments ? ` (${item.comments})` : '';
-    return `- ${item.sku || item.title} x${item.quantityToReturn} — ${reasonText}${comments}`;
+    const comments = item.comments ? ` | Note: ${item.comments}` : '';
+    return `  ${item.sku || item.title} x${item.quantityToReturn} — ${reasonText}${comments}`;
   });
 
   return [
-    `--- Return processed ${date} ---`,
-    `Refund method: ${methodLabel}`,
-    'Items refunded:',
-    ...itemLines,
+    `Return processed: ${date}`,
+    `Refund: ${methodLabel}`,
+    `Items returned:\n${itemLines.join('\n')}`,
   ].join('\n');
 }
 
@@ -113,14 +103,34 @@ module.exports = async function adminProcessRefund(req, res) {
         }
       }
 
+      // Restock items via Shopify Refunds API — no financial transaction (handled by gift card)
+      // The note field attaches the return details to this refund entry in the order timeline.
+      if (finalRefundLineItems.length > 0) {
+        const noteText = buildNoteText(submission, 'gift_card', giftCardCode, false, finalRefundAmount);
+        try {
+          await shopifyPost(`/orders/${shopifyOrderId}/refunds.json`, {
+            refund: {
+              notify: false,
+              note: noteText,
+              refund_line_items: finalRefundLineItems,
+              transactions: [],
+            },
+          });
+        } catch (restockErr) {
+          console.error('Restock refund call failed:', restockErr.message);
+        }
+      }
+
     } else {
       // Process financial refund to original payment
       const shippingRefundAmount = refundShipping ? parseFloat(shippingAmount || 0) : 0;
       const totalTransaction = parseFloat(finalRefundAmount) + shippingRefundAmount;
+      const noteText = buildNoteText(submission, 'original_payment', null, applyDeliveryDeduction, finalRefundAmount);
 
       await shopifyPost(`/orders/${shopifyOrderId}/refunds.json`, {
         refund: {
           notify: true,
+          note: noteText,
           shipping: { full_refund: false, amount: shippingRefundAmount.toFixed(2) },
           refund_line_items: finalRefundLineItems,
           transactions: [{
@@ -132,16 +142,6 @@ module.exports = async function adminProcessRefund(req, res) {
         },
       });
     }
-
-    // Append note to Shopify order
-    const noteText = buildNoteText(
-      submission,
-      isGiftCard ? 'gift_card' : 'original_payment',
-      giftCardCode,
-      applyDeliveryDeduction,
-      finalRefundAmount
-    );
-    await appendOrderNote(shopifyOrderId, noteText);
 
     // Update submission record and mark as processed
     submissions[index].status = 'processed';
