@@ -412,8 +412,7 @@
           <input type="checkbox" id="sr-check-policy">
           <span>I confirm I have read the full <a href="/pages/returns-policy" target="_blank" style="color:#333;text-decoration:underline;font-weight:500;">Returns Policy</a> and would like to proceed with returning item(s) from my order.</span>
         </label>
-        <div id="sr-14days-banner" style="display:none;"></div>
-        <label class="sr-confirm-item" id="sr-14days-row">
+        <label class="sr-confirm-item">
           <input type="checkbox" id="sr-check-14days">
           <span>I accept that this order was delivered to me within the last 14 days. <em>Note: After this time period, your parcel sent to us can be rejected and returned back to you.</em></span>
         </label>
@@ -578,26 +577,6 @@
 
       orderData = data.order;
 
-      // Delivery eligibility check
-      const dc = orderData.deliveryCheck || {};
-      if (dc.status === 'in_transit') {
-        stage1Content.style.display = 'block';
-        stage1Spinner.style.display = 'none';
-        lookupBtn.disabled = false;
-        showError(lookupError, "Your order hasn't been delivered yet. You can start a return once your parcel has been delivered.");
-        return;
-      }
-      if (dc.isEligibleForReturn === false) {
-        stage1Content.style.display = 'block';
-        stage1Spinner.style.display = 'none';
-        lookupBtn.disabled = false;
-        const deliveredOn = dc.deliveredDate
-          ? new Date(dc.deliveredDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-          : 'more than 14 days ago';
-        showError(lookupError, `Your 14-day return window has expired. This order was delivered on ${deliveredOn}.`);
-        return;
-      }
-
       buildStage2();
       showStage(stage2);
 
@@ -737,21 +716,6 @@
       document.getElementById(id).addEventListener('change', validateForm);
     });
 
-    // Show delivery eligibility banner or fallback checkbox
-    const dc = orderData.deliveryCheck || {};
-    const banner14 = document.getElementById('sr-14days-banner');
-    const row14 = document.getElementById('sr-14days-row');
-    if (dc.isEligibleForReturn === true && dc.deliveredDate) {
-      const deliveredOn = new Date(dc.deliveredDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-      const daysLeft = dc.daysRemaining;
-      banner14.innerHTML = `<div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;font-size:13px;color:#2e7d32;line-height:1.5;"><span style="font-size:16px;flex-shrink:0;">✓</span><span>This order was delivered on <strong>${deliveredOn}</strong> — you have <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong> remaining in your return window.</span></div>`;
-      banner14.style.display = 'block';
-      row14.style.display = 'none';
-    } else {
-      banner14.style.display = 'none';
-      row14.style.display = '';
-    }
-
     validateForm();
   }
 
@@ -790,7 +754,7 @@
 
     // Checkboxes
     if (!document.getElementById('sr-check-policy').checked)   valid = false;
-    if (!(orderData?.deliveryCheck?.isEligibleForReturn === true) && !document.getElementById('sr-check-14days').checked) valid = false;
+    if (!document.getElementById('sr-check-14days').checked) valid = false;
     if (!document.getElementById('sr-check-postage').checked)         valid = false;
     if (!document.getElementById('sr-check-deduction').checked)       valid = false;
     if (!document.getElementById('sr-check-delivery-charge').checked) valid = false;
@@ -852,7 +816,7 @@
       tagsAttached,
       policyConfirmations: {
         readReturnsPolicy:       document.getElementById('sr-check-policy').checked,
-        within14Days:            (orderData?.deliveryCheck?.isEligibleForReturn === true) || document.getElementById('sr-check-14days').checked,
+        within14Days:            true,
         responsibleForPostage:        document.getElementById('sr-check-postage').checked,
         understandsDeduction:         document.getElementById('sr-check-deduction').checked,
         understandsDeliveryCharges:   document.getElementById('sr-check-delivery-charge').checked,
@@ -884,7 +848,7 @@
       }
 
       // Success
-      successText.innerHTML = `We'll review your request and get back to you within 2 business days at <strong>${escHtml(orderData.customerEmail)}</strong>.`;
+      successText.innerHTML = `A confirmation email has been sent to <strong>${escHtml(orderData.customerEmail)}</strong> with details on how and where to return your item(s). Please check your inbox (and spam folder) for next steps.`;
       showStage(stage3);
 
     } catch (err) {

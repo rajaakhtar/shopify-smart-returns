@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { shopifyFetch } = require('../utils/shopify');
-const { checkDelivery } = require('../services/royalMail');
 const { calculateReturnsRate } = require('../utils/returnsRate');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
@@ -113,24 +112,6 @@ module.exports = async function lookupOrder(req, res) {
       }
     } catch {}
 
-    // Extract tracking from the most recent fulfilled shipment
-    const fulfillment = (order.fulfillments || []).find(
-      f => f.tracking_number || (f.tracking_numbers && f.tracking_numbers.length > 0)
-    );
-    const trackingNumber = fulfillment?.tracking_number || fulfillment?.tracking_numbers?.[0] || null;
-    const trackingCompany = fulfillment?.tracking_company || '';
-
-    const debugLog = (msg) => fs.appendFileSync(path.join(__dirname, '..', 'data', 'tracking-debug.log'), new Date().toISOString() + ' ' + msg + '\n');
-    debugLog('fulfillments: ' + JSON.stringify(order.fulfillments || []));
-    debugLog('trackingNumber: ' + trackingNumber + ' | trackingCompany: ' + trackingCompany);
-
-    // Check delivery status (best-effort — falls back gracefully on error)
-    const deliveryCheck = trackingNumber
-      ? await checkDelivery(trackingNumber, trackingCompany)
-      : { status: 'unavailable', isEligibleForReturn: null, deliveredDate: null, daysRemaining: null, carrier: 'unknown' };
-
-    debugLog('deliveryCheck: ' + JSON.stringify(deliveryCheck));
-
     return res.json({
       success: true,
       order: {
@@ -141,7 +122,6 @@ module.exports = async function lookupOrder(req, res) {
         customerEmail: order.email,
         customerId: order.customer?.id || null,
         lineItems,
-        deliveryCheck,
       },
     });
   } catch (error) {
