@@ -53,6 +53,9 @@ app.post('/proxy/api/submit-return', checkOrigin, submitReturnRoute);
 // POST /proxy/api/submission-issue - Customer reports issue with existing open submission
 app.post('/proxy/api/submission-issue', checkOrigin, submissionIssueRoute);
 
+// GET /ping - Keep-alive health check (no auth required)
+app.get('/ping', (_req, res) => res.send('ok'));
+
 // Catch-all: any other direct access to this server returns Access Restricted
 const ACCESS_RESTRICTED_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -82,4 +85,10 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Smart Returns app running on port ${PORT}`);
+
+  // Self-ping every 4 minutes to prevent the hosting environment from
+  // spinning down the process due to inactivity.
+  setInterval(() => {
+    fetch(`http://localhost:${PORT}/ping`).catch(() => {});
+  }, 4 * 60 * 1000);
 });
