@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { sendReturnEmail } = require('../utils/mailer');
 const { buildEmailHtml } = require('../utils/emailBuilder');
+const { buildCustomerEmailHtml } = require('../utils/customerEmailBuilder');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
@@ -52,11 +53,26 @@ module.exports = async function adminResend(req, res) {
     return res.json({ success: true });
   }
 
-  // Handle cancel action
   if (req.body.action === 'cancel') {
     submission.status = 'cancelled';
     fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
     return res.json({ success: true });
+  }
+
+  if (req.body.action === 'resend-customer') {
+    try {
+      let templateHtml = '';
+      if (fs.existsSync(TEMPLATE_FILE)) {
+        try { templateHtml = JSON.parse(fs.readFileSync(TEMPLATE_FILE, 'utf8')).html || ''; } catch {}
+      }
+      const html = buildCustomerEmailHtml(submission, templateHtml);
+      const subject = `Your Return Request — Order ${submission.orderNumber}`;
+      await sendReturnEmail(submission.customerEmail, subject, html, process.env.RETURNS_EMAIL, 'MOMINA Designer Outfit Collection');
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('resend-customer error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to send customer email' });
+    }
   }
 
   try {

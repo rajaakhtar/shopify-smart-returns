@@ -309,6 +309,7 @@ function renderSubmissions() {
               <option value="complete">✓ Move to Processed</option>
               <option value="cancel">✕ Cancel Request</option>` : ''}
               <option value="resend">↺ Re-send Admin Email</option>
+              <option value="resend-customer">↺ Re-send Customer Email</option>
             </select>
             <button class="action-go-btn" onclick="performAction('${s.id}')">Go</button>
           </div>
@@ -346,6 +347,7 @@ function performAction(submissionId) {
   else if (action === 'complete') markProcessed(submissionId);
   else if (action === 'cancel') cancelSubmission(submissionId);
   else if (action === 'resend') resend(submissionId);
+  else if (action === 'resend-customer') resendCustomer(submissionId);
 }
 
 async function startProcessingReturn(submissionId) {
@@ -585,6 +587,24 @@ async function resend(submissionId) {
     btn.textContent = '✗ Network error';
     btn.className = 'resend-btn error';
     btn.disabled = false;
+  }
+}
+
+async function resendCustomer(submissionId) {
+  try {
+    const resp = await fetch(baseUrl + '/admin-resend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submissionId, token: adminToken, action: 'resend-customer' }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      alert('Customer email re-sent successfully.');
+    } else {
+      alert('Failed to re-send customer email: ' + (data.message || 'Unknown error'));
+    }
+  } catch {
+    alert('Network error — could not re-send customer email.');
   }
 }
 
