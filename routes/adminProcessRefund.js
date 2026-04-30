@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { shopifyPost } = require('../utils/shopify');
+const { shopifyFetch, shopifyPost } = require('../utils/shopify');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 
@@ -65,11 +65,28 @@ module.exports = async function adminProcessRefund(req, res) {
                      (submission.refundPreference || '').toLowerCase().includes('exchange');
 
   try {
+    // Fetch restock location from the order's fulfillment (Shopify requires location_id when restocking)
+    let restockLocationId = null;
+    try {
+      const orderData = await shopifyFetch(`/orders/${shopifyOrderId}.json?fields=id,fulfillments`);
+      restockLocationId = orderData.order?.fulfillments?.[0]?.location_id || null;
+    } catch {}
+    if (!restockLocationId) {
+      try {
+        const locData = await shopifyFetch('/locations.json');
+        restockLocationId = locData.locations?.find(l => l.active)?.id || locData.locations?.[0]?.id || null;
+      } catch {}
+    }
+
     // Apply restock choices from the UI (index-matched to refundLineItems)
-    const finalRefundLineItems = (refundLineItems || []).map((rli, idx) => ({
-      ...rli,
-      restock_type: restockChoices?.[idx] !== false ? 'return' : 'no_restock',
-    }));
+    const finalRefundLineItems = (refundLineItems || []).map((rli, idx) => {
+      const restock_type = restockChoices?.[idx] !== false ? 'return' : 'no_restock';
+      return {
+        ...rli,
+        restock_type,
+        ...(restock_type === 'return' && restockLocationId ? { location_id: restockLocationId } : {}),
+      };
+    });
 
     let giftCardCode = null;
 
