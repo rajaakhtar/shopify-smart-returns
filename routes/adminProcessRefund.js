@@ -1,8 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const { shopifyFetch, shopifyPost } = require('../utils/shopify');
-
-const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+const store = require('../utils/store');
 
 function buildNoteText(submission, method, giftCardCode, applyDeliveryDeduction, finalAmount) {
   const date = new Date().toLocaleDateString('en-GB', {
@@ -50,15 +47,11 @@ module.exports = async function adminProcessRefund(req, res) {
     return res.status(400).json({ success: false, message: 'Missing submissionId' });
   }
 
-  let submissions = [];
-  if (fs.existsSync(DATA_FILE)) {
-    try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch {}
-  }
-  const index = submissions.findIndex(s => String(s.id) === String(submissionId));
-  if (index === -1) {
+  const found = store.findById(submissionId);
+  if (!found) {
     return res.status(404).json({ success: false, message: 'Submission not found' });
   }
-  const submission = submissions[index];
+  const submission = found.submission;
   const shopifyOrderId = submission.shopifyOrderId;
 
   const isGiftCard = (submission.refundPreference || '').toLowerCase().includes('store credit') ||
@@ -160,14 +153,14 @@ module.exports = async function adminProcessRefund(req, res) {
       });
     }
 
-    // Update submission record and mark as processed
-    submissions[index].status = 'processed';
-    submissions[index].refundProcessed = true;
-    submissions[index].refundProcessedAt = new Date().toISOString();
-    submissions[index].refundMethod = isGiftCard ? 'gift_card' : 'original_payment';
-    submissions[index].refundAmount = parseFloat(finalRefundAmount);
-    if (giftCardCode) submissions[index].giftCardCode = giftCardCode;
-    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+    // Move to processed file with refund details
+    store.moveTo(submissionId, 'processed', {
+      refundProcessed: true,
+      refundProcessedAt: new Date().toISOString(),
+      refundMethod: isGiftCard ? 'gift_card' : 'original_payment',
+      refundAmount: parseFloat(finalRefundAmount),
+      ...(giftCardCode ? { giftCardCode } : {}),
+    });
 
     return res.json({ success: true, isGiftCard, giftCardCode });
 

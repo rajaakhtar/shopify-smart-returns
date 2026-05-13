@@ -225,8 +225,14 @@ function renderSubmissions() {
   }
 
   app.innerHTML = '<div class="card-list">' + filtered.map(s => {
-    const statusClass = s.emailStatus === 'sent' ? 'badge-sent' : 'badge-failed';
-    const statusLabel = s.emailStatus === 'sent' ? '✓ Email sent' : '✗ Email failed';
+    const adminEmailOk = !s.emailStatus || s.emailStatus === 'sent';
+    const customerEmailOk = !s.customerEmailStatus || s.customerEmailStatus === 'sent';
+    const emailBadges = (adminEmailOk && customerEmailOk)
+      ? `<span class="badge badge-sent">✓ Emails sent</span>`
+      : [
+          !adminEmailOk ? `<span class="badge badge-failed">✗ Admin email failed</span>` : '',
+          !customerEmailOk ? `<span class="badge badge-failed">✗ Customer email failed</span>` : '',
+        ].join('');
     const itemCount = s.items ? s.items.length : 0;
 
     const itemRows = (s.items || []).map(item => `
@@ -252,7 +258,7 @@ function renderSubmissions() {
           <a class="order-num" href="${s.shopifyOrderId ? `https://admin.shopify.com/store/${shopDomain.replace('.myshopify.com','')}/orders/${s.shopifyOrderId}` : `https://${shopDomain}/admin/orders?query=${encodeURIComponent(s.orderNumber.replace('#',''))}`}" target="_blank" onclick="event.stopPropagation()">${esc(s.orderNumber)}</a>
           <span class="customer">${esc(s.customerName)}</span>
           <span class="date">${formatDate(s.submittedAt)}</span>
-          <span class="badge ${statusClass}">${statusLabel}</span>
+          ${emailBadges}
         </div>
         <svg class="chevron" id="chevron-${s.id}" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>

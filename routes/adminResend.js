@@ -4,7 +4,7 @@ const { sendReturnEmail } = require('../utils/mailer');
 const { buildEmailHtml } = require('../utils/emailBuilder');
 const { buildCustomerEmailHtml } = require('../utils/customerEmailBuilder');
 
-const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+const store = require('../utils/store');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
 
 module.exports = async function adminResend(req, res) {
@@ -37,25 +37,19 @@ module.exports = async function adminResend(req, res) {
     return res.status(400).json({ success: false, message: 'Missing submissionId' });
   }
 
-  let submissions = [];
-  if (fs.existsSync(DATA_FILE)) {
-    try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch {}
-  }
-
-  const submission = submissions.find(s => String(s.id) === String(submissionId));
-  if (!submission) {
+  const found = store.findById(submissionId);
+  if (!found) {
     return res.status(404).json({ success: false, message: 'Submission not found' });
   }
+  const submission = found.submission;
 
   if (req.body.action === 'mark-processed') {
-    submission.status = 'processed';
-    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+    store.moveTo(submissionId, 'processed');
     return res.json({ success: true });
   }
 
   if (req.body.action === 'cancel') {
-    submission.status = 'cancelled';
-    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+    store.moveTo(submissionId, 'cancelled');
     return res.json({ success: true });
   }
 
@@ -80,8 +74,7 @@ module.exports = async function adminResend(req, res) {
     const html = buildEmailHtml(submission);
     await sendReturnEmail(process.env.RETURNS_EMAIL, subject, html, submission.customerEmail);
 
-    submission.emailStatus = 'sent';
-    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+    store.update(submissionId, { emailStatus: 'sent' });
 
     return res.json({ success: true });
   } catch (err) {

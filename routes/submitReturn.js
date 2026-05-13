@@ -4,8 +4,8 @@ const { sendReturnEmail } = require('../utils/mailer');
 const { buildEmailHtml } = require('../utils/emailBuilder');
 const { buildCustomerEmailHtml } = require('../utils/customerEmailBuilder');
 const { calculateReturnsRate } = require('../utils/returnsRate');
+const store = require('../utils/store');
 
-const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
 
 function loadCustomerTemplate() {
@@ -16,17 +16,6 @@ function loadCustomerTemplate() {
     }
   } catch {}
   return '';
-}
-
-function saveSubmission(submission) {
-  const dataDir = path.join(__dirname, '..', 'data');
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  let submissions = [];
-  if (fs.existsSync(DATA_FILE)) {
-    try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { submissions = []; }
-  }
-  submissions.unshift(submission);
-  fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
 }
 
 /**
@@ -91,17 +80,29 @@ module.exports = async function submitReturn(req, res) {
       items,
     };
 
-    const emailHtml = buildEmailHtml(submission);
+    // Save first — this is the critical gate. Only confirm to the customer if this succeeds.
+    try {
+      store.saveNew(submission);
+    } catch (saveError) {
+      console.error('Failed to save submission:', saveError);
+      return res.json({ success: false, message: 'An error occurred while saving your return request. Please try again.' });
+    }
 
+    // Respond to the customer immediately — their request is on record
+    res.json({ success: true, message: 'Return request submitted successfully.' });
+
+    // Everything below is best-effort and runs after the response is sent
+    const emailHtml = buildEmailHtml(submission);
     let emailStatus = 'sent';
     try {
       await sendReturnEmail(process.env.RETURNS_EMAIL, subject, emailHtml, customerEmail);
     } catch (emailError) {
-      console.error('Email send failed:', emailError);
+      console.error('Admin email send failed:', emailError);
       emailStatus = emailError.message || 'failed';
     }
 
-    // Send customer confirmation email (best-effort — don't fail the submission if it errors)
+    // Send customer confirmation email
+    let customerEmailStatus = 'sent';
     try {
       const templateHtml = loadCustomerTemplate();
       const customerHtml = buildCustomerEmailHtml(submission, templateHtml);
@@ -109,21 +110,17 @@ module.exports = async function submitReturn(req, res) {
       await sendReturnEmail(customerEmail, customerSubject, customerHtml, process.env.RETURNS_EMAIL, 'MOMINA Designer Outfit Collection');
     } catch (customerEmailError) {
       console.error('Customer email send failed:', customerEmailError);
+      customerEmailStatus = customerEmailError.message || 'failed';
     }
 
-    // Calculate returns rate (best-effort — don't fail submission if it errors)
+    // Calculate returns rate
     let returnsRate = null;
     try {
       returnsRate = await calculateReturnsRate(customerId || null, customerEmail);
     } catch {}
 
-    saveSubmission({ ...submission, emailStatus, returnsRate });
-
-    if (emailStatus !== 'sent') {
-      return res.json({ success: false, message: `Return recorded but email failed: ${emailStatus}` });
-    }
-
-    return res.json({ success: true, message: 'Return request submitted successfully.' });
+    // Update the saved record with both email statuses and returns rate
+    store.update(submission.id, { emailStatus, customerEmailStatus, returnsRate });
   } catch (error) {
     console.error('submitReturn error:', error);
     return res.json({ success: false, message: 'An error occurred while submitting your return. Please try again.' });

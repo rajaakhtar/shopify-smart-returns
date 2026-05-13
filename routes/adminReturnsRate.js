@@ -1,9 +1,6 @@
-const fs = require('fs');
-const path = require('path');
 const { shopifyFetch } = require('../utils/shopify');
 const { calculateReturnsRate } = require('../utils/returnsRate');
-
-const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+const store = require('../utils/store');
 
 module.exports = async function adminReturnsRate(req, res) {
   try {
@@ -17,17 +14,11 @@ module.exports = async function adminReturnsRate(req, res) {
       return res.status(400).json({ success: false, message: 'Missing submissionId' });
     }
 
-    let submissions = [];
-    if (fs.existsSync(DATA_FILE)) {
-      try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch {}
-    }
-
-    const index = submissions.findIndex(s => String(s.id) === String(submissionId));
-    if (index === -1) {
+    const found = store.findById(submissionId);
+    if (!found) {
       return res.status(404).json({ success: false, message: 'Submission not found' });
     }
-
-    const submission = submissions[index];
+    const submission = found.submission;
 
     // Get customer ID from the order (no read_customers scope needed)
     let customerId = submission.customerId;
@@ -43,9 +34,7 @@ module.exports = async function adminReturnsRate(req, res) {
 
     const { totalOrdered, totalReturned, rate } = await calculateReturnsRate(customerId, submission.customerEmail);
 
-    submissions[index].returnsRate = { totalOrdered, totalReturned, rate };
-    submissions[index].customerId = customerId;
-    fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+    store.update(submissionId, { returnsRate: { totalOrdered, totalReturned, rate }, customerId });
 
     return res.json({ success: true, totalOrdered, totalReturned, rate });
   } catch (err) {

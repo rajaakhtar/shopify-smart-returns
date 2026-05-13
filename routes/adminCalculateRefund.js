@@ -1,8 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const { shopifyFetch, shopifyPost } = require('../utils/shopify');
-
-const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+const store = require('../utils/store');
 const FREE_DELIVERY_THRESHOLD = 70;
 const DELIVERY_CHARGE = 2.99;
 
@@ -17,11 +14,8 @@ module.exports = async function adminCalculateRefund(req, res) {
     return res.status(400).json({ success: false, message: 'Missing submissionId' });
   }
 
-  let submissions = [];
-  if (fs.existsSync(DATA_FILE)) {
-    try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch {}
-  }
-  const submission = submissions.find(s => String(s.id) === String(submissionId));
+  const found = store.findById(submissionId);
+  const submission = found?.submission;
   if (!submission) {
     return res.status(404).json({ success: false, message: 'Submission not found' });
   }

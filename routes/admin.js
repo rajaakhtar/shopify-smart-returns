@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const DATA_FILE = path.join(__dirname, '..', 'data', 'submissions.json');
+const store = require('../utils/store');
 const CUSTOMER_TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
 const TEMPLATE = path.join(__dirname, '..', 'templates', 'admin-dashboard.html');
 
@@ -40,10 +40,7 @@ module.exports = function admin(req, res) {
     return res.status(403).send(ACCESS_RESTRICTED);
   }
 
-  let submissions = [];
-  if (fs.existsSync(DATA_FILE)) {
-    try { submissions = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch {}
-  }
+  const submissions = store.loadAll();
 
   let customerTemplateHtml = '';
   if (fs.existsSync(CUSTOMER_TEMPLATE_FILE)) {
