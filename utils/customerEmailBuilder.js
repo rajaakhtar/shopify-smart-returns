@@ -60,6 +60,69 @@ function buildCustomerEmailHtml(submission, templateHtml) {
 </html>`;
 }
 
+function buildOverdueEmailHtml(submission, submittedDate) {
+  const { orderNumber, customerName, items = [] } = submission;
+
+  const logoUrl = process.env.STORE_LOGO_URL || '';
+  const logoHtml = logoUrl
+    ? `<img src="${logoUrl}" alt="Momina" height="48" style="max-height:48px;">`
+    : `<span style="color:#ffffff;text-align:center;font-size:20px;font-weight:700;letter-spacing:3px;">MOMINA</span>`;
+
+  const itemList = items
+    .map(i => `<li style="margin-bottom:4px;">${esc(i.title)}${i.variantTitle ? ` — ${esc(i.variantTitle)}` : ''} (Qty: ${i.quantityToReturn})</li>`)
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Return Request Closed — ${esc(orderNumber)}</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:32px 16px;">
+  <tr><td align="center">
+  <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
+
+    <!-- Header -->
+    <tr>
+      <td style="background:#4a1e5d;padding:20px 32px 15px;text-align:center;">
+        ${logoHtml}
+      </td>
+    </tr>
+
+    <!-- Title bar -->
+    <tr>
+      <td style="background:#2d2d2d;padding:14px 32px;">
+        <p style="margin:0;color:#ffffff;font-size:16px;font-weight:700;">Return Request Closed — ${esc(orderNumber)}</p>
+      </td>
+    </tr>
+
+    <!-- Body -->
+    <tr>
+      <td style="padding:28px 32px 32px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.8;color:#222222;">
+        <p style="margin:0 0 16px;">Dear ${esc(customerName)},</p>
+        <p style="margin:0 0 16px;">We are writing regarding your return request for order <strong>${esc(orderNumber)}</strong>, submitted on ${esc(submittedDate)}.</p>
+        <p style="margin:0 0 8px;">Unfortunately, we have not yet received the following item(s):</p>
+        <ul style="padding-left:20px;margin:0 0 16px;">${itemList}</ul>
+        <p style="margin:0 0 16px;">As more than 14 days have passed since the return request was opened, it now falls outside our return window. We are therefore unable to process this return, and your request has been closed.</p>
+        <p style="margin:0 0 16px;">If you believe this has been closed in error, or if you have already sent the item(s), please contact us as soon as possible with your proof of postage and we will be happy to look into this for you.</p>
+        <p style="margin:0 0 16px;">We appreciate your understanding.</p>
+        <p style="margin:0;">Kind regards,<br>MOMINA Designer Outfit Collection</p>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="background:#f7f7f7;padding:16px 32px;border-top:1px solid #eeeeee;">
+        <p style="margin:0;font-size:12px;color:#999999;">This email was sent automatically by momina.co.uk</p>
+      </td>
+    </tr>
+
+  </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
 function esc(val) {
   if (val === undefined || val === null) return '';
   return String(val)
@@ -69,4 +132,4 @@ function esc(val) {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = { buildCustomerEmailHtml };
+module.exports = { buildCustomerEmailHtml, buildOverdueEmailHtml };

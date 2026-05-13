@@ -233,6 +233,8 @@ function renderSubmissions() {
           !adminEmailOk ? `<span class="badge badge-failed">✗ Admin email failed</span>` : '',
           !customerEmailOk ? `<span class="badge badge-failed">✗ Customer email failed</span>` : '',
         ].join('');
+    const isOverdue = s.status === 'open' && s.submittedAt &&
+      (Date.now() - new Date(s.submittedAt).getTime()) > 14 * 24 * 60 * 60 * 1000;
     const itemCount = s.items ? s.items.length : 0;
 
     const itemRows = (s.items || []).map(item => `
@@ -252,7 +254,7 @@ function renderSubmissions() {
 
     const searchText = [s.orderNumber, s.customerName, s.customerEmail].join(' ').toLowerCase();
     return `
-    <div class="card" data-search="${esc(searchText)}">
+    <div class="card" data-search="${esc(searchText)}" ${isOverdue ? 'style="background:#ffbdbd;"' : ''}>
       <div class="card-header" onclick="toggle('${s.id}')">
         <div class="card-meta">
           <a class="order-num" href="${s.shopifyOrderId ? `https://admin.shopify.com/store/${shopDomain.replace('.myshopify.com','')}/orders/${s.shopifyOrderId}` : `https://${shopDomain}/admin/orders?query=${encodeURIComponent(s.orderNumber.replace('#',''))}`}" target="_blank" onclick="event.stopPropagation()">${esc(s.orderNumber)}</a>
@@ -313,6 +315,7 @@ function renderSubmissions() {
               ${currentTab === 'open' ? `
               <option value="process">▶ Start Processing Return</option>
               <option value="complete">✓ Move to Processed</option>
+              ${isOverdue ? `<option value="cancel-overdue">⚠ Return Overdue — Cancel &amp; Notify</option>` : ''}
               <option value="cancel">✕ Cancel Request</option>` : ''}
               <option value="resend">↺ Re-send Admin Email</option>
               <option value="resend-customer">↺ Re-send Customer Email</option>
@@ -352,6 +355,7 @@ function performAction(submissionId) {
   if (action === 'process') startProcessingReturn(submissionId);
   else if (action === 'complete') markProcessed(submissionId);
   else if (action === 'cancel') cancelSubmission(submissionId);
+  else if (action === 'cancel-overdue') cancelOverdue(submissionId);
   else if (action === 'resend') resend(submissionId);
   else if (action === 'resend-customer') resendCustomer(submissionId);
 }
@@ -548,6 +552,25 @@ async function cancelSubmission(submissionId) {
       const sub = submissions.find(s => String(s.id) === String(submissionId));
       if (sub) sub.status = 'cancelled';
       renderSubmissions();
+    }
+  } catch {}
+}
+
+async function cancelOverdue(submissionId) {
+  if (!confirm('This will cancel the request and send an overdue notification email to the customer. Continue?')) return;
+  try {
+    const resp = await fetch(baseUrl + '/admin-resend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel-overdue', submissionId, token: adminToken }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const sub = submissions.find(s => String(s.id) === String(submissionId));
+      if (sub) sub.status = 'cancelled';
+      renderSubmissions();
+    } else {
+      alert('Failed to cancel: ' + (data.message || 'Unknown error'));
     }
   } catch {}
 }

@@ -31,7 +31,7 @@ module.exports = async function submissionIssue(req, res) {
     <p style="margin:0;font-size:14px;color:#222;background:#f7f7f7;padding:12px 14px;border-radius:5px;border-left:3px solid #4a1e5d;white-space:pre-wrap;">${message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
   </td></tr>
   <tr><td style="padding:24px 32px;font-size:12px;color:#aaa;border-top:1px solid #eee;margin-top:24px;">
-    Sent via Smart Returns — submission issue report
+    Submitted via the returns portal on momina.co.uk
   </td></tr>
 </table>
 </body></html>`;

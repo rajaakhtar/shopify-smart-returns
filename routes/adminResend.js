@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { sendReturnEmail } = require('../utils/mailer');
 const { buildEmailHtml } = require('../utils/emailBuilder');
-const { buildCustomerEmailHtml } = require('../utils/customerEmailBuilder');
+const { buildCustomerEmailHtml, buildOverdueEmailHtml } = require('../utils/customerEmailBuilder');
 
 const store = require('../utils/store');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'data', 'customer-email-template.json');
@@ -50,6 +50,26 @@ module.exports = async function adminResend(req, res) {
 
   if (req.body.action === 'cancel') {
     store.moveTo(submissionId, 'cancelled');
+    return res.json({ success: true });
+  }
+
+  if (req.body.action === 'cancel-overdue') {
+    store.moveTo(submissionId, 'cancelled');
+    const submittedDate = new Date(submission.submittedAt).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    });
+    const html = buildOverdueEmailHtml(submission, submittedDate);
+    try {
+      await sendReturnEmail(
+        submission.customerEmail,
+        `Return Request Closed — Order ${submission.orderNumber}`,
+        html,
+        process.env.RETURNS_EMAIL,
+        'MOMINA Designer Outfit Collection'
+      );
+    } catch (err) {
+      console.error('cancel-overdue email failed:', err.message);
+    }
     return res.json({ success: true });
   }
 
