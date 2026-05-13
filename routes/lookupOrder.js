@@ -36,6 +36,14 @@ module.exports = async function lookupOrder(req, res) {
       return res.json({ success: false, message: 'The email address does not match this order.' });
     }
 
+    // Block TikTok orders — returns must be handled through TikTok directly
+    if ((order.source_name || '').toLowerCase().includes('tiktok')) {
+      return res.json({
+        success: false,
+        message: 'This order was placed through TikTok. Please start your return directly through TikTok.',
+      });
+    }
+
     // Format order date as "15 March 2025"
     const orderDate = new Date(order.created_at);
     const formattedDate = orderDate.toLocaleDateString('en-GB', {
