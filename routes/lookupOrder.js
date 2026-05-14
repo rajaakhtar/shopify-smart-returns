@@ -101,8 +101,8 @@ module.exports = async function lookupOrder(req, res) {
     // Check returns rate — block if above 40% with at least 4 orders
     try {
       const customerId = order.customer?.id || null;
-      const { rate, totalOrders } = await calculateReturnsRate(customerId, order.email);
-      if (rate > 40 && totalOrders >= 4) {
+      const { rate, totalOrders, orderReturnRate } = await calculateReturnsRate(customerId, order.email);
+      if (totalOrders >= 5 && rate > 40 && orderReturnRate > 40) {
         return res.json({
           success: false,
           isBlocked: true,

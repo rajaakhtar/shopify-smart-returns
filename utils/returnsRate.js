@@ -30,6 +30,7 @@ async function calculateReturnsRate(customerId, customerEmail) {
 
   let totalOrdered = 0;
   let totalReturned = 0;
+  let ordersWithReturns = 0;
 
   for (const order of allOrdersMap.values()) {
     if (order.cancelled_at) continue;
@@ -38,17 +39,22 @@ async function calculateReturnsRate(customerId, customerEmail) {
       totalOrdered += item.quantity || 0;
     }
 
+    let orderHadReturn = false;
     for (const refund of order.refunds || []) {
       for (const refundItem of refund.refund_line_items || []) {
         if (refundItem.restock_type === 'return' || refundItem.restock_type === 'legacy_restock') {
           totalReturned += refundItem.quantity || 0;
+          orderHadReturn = true;
         }
       }
     }
+    if (orderHadReturn) ordersWithReturns++;
   }
 
+  const totalOrders = allOrdersMap.size;
   const rate = totalOrdered > 0 ? Math.round((totalReturned / totalOrdered) * 100) : 0;
-  return { totalOrdered, totalReturned, rate, totalOrders: allOrdersMap.size };
+  const orderReturnRate = totalOrders > 0 ? Math.round((ordersWithReturns / totalOrders) * 100) : 0;
+  return { totalOrdered, totalReturned, rate, totalOrders, ordersWithReturns, orderReturnRate };
 }
 
 module.exports = { calculateReturnsRate };
